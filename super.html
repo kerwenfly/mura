@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超级管理员 - 多人在线实时评分系统</title>
+    <script src="lib/tailwind.min.js"></script>
+    <script src="lib/supabase.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="min-h-screen">
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-brand">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>超级管理员</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="superAdminName" class="text-muted hidden md:block"></span>
+                <button id="logoutBtn" class="btn btn-secondary btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span class="hidden md:inline">退出</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-6">
+        <div id="loginSection" class="max-w-md mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title text-center">超级管理员登录</h2>
+                </div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label" for="email">邮箱</label>
+                        <input type="email" id="email" class="form-input" placeholder="请输入超级管理员邮箱" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password">密码</label>
+                        <input type="password" id="password" class="form-input" placeholder="请输入密码" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                        登录
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="adminSection" class="hidden">
+            <div class="grid gap-6">
+                <div class="card">
+                    <div class="card-header flex justify-between items-center">
+                        <h3 class="card-title">管理员列表</h3>
+                        <button id="addAdminBtn" class="btn btn-primary btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            添加管理员
+                        </button>
+                    </div>
+                    <div id="adminList" class="space-y-2">
+                        <div class="empty-state py-4">
+                            <p class="text-muted">暂无管理员</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">活动概览</h3>
+                    </div>
+                    <div id="eventOverview" class="grid md:grid-cols-4 gap-4">
+                        <div class="text-center p-4 rounded-lg bg-background">
+                            <div class="text-3xl font-bold text-primary" id="totalEvents">0</div>
+                            <div class="text-muted">总活动数</div>
+                        </div>
+                        <div class="text-center p-4 rounded-lg bg-background">
+                            <div class="text-3xl font-bold text-success" id="activeEvents">0</div>
+                            <div class="text-muted">进行中</div>
+                        </div>
+                        <div class="text-center p-4 rounded-lg bg-background">
+                            <div class="text-3xl font-bold text-warning" id="totalContestants">0</div>
+                            <div class="text-muted">总选手数</div>
+                        </div>
+                        <div class="text-center p-4 rounded-lg bg-background">
+                            <div class="text-3xl font-bold text-cta" id="totalJudges">0</div>
+                            <div class="text-muted">总评委数</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="adminModalTitle">添加管理员</h3>
+                <button class="btn btn-secondary btn-sm" onclick="closeAdminModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="adminForm">
+                <div class="modal-body">
+                    <input type="hidden" id="adminId">
+                    <div class="form-group">
+                        <label class="form-label" for="adminUsername">用户名 *</label>
+                        <input type="text" id="adminUsername" class="form-input" placeholder="请输入用户名" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="adminEmail">邮箱 *</label>
+                        <input type="email" id="adminEmail" class="form-input" placeholder="请输入邮箱" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="adminPassword">密码 *</label>
+                        <input type="password" id="adminPassword" class="form-input" placeholder="请输入密码">
+                        <p class="text-muted text-sm mt-1" id="passwordHint">留空则不修改密码</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="adminExpires">有效期</label>
+                        <input type="datetime-local" id="adminExpires" class="form-input">
+                        <p class="text-muted text-sm mt-1">留空表示永久有效</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="adminActive" class="w-5 h-5 accent-[var(--primary)]" checked>
+                            <span>启用</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAdminModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="confirmTitle">确认操作</h3>
+                <button class="btn btn-secondary btn-sm" onclick="closeConfirmModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">确定要执行此操作吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeConfirmModal()">取消</button>
+                <button type="button" id="confirmBtn" class="btn btn-danger">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/supabase-client.js"></script>
+    <script src="js/super.js"></script>
+</body>
+</html>
