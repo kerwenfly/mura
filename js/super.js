@@ -248,6 +248,10 @@ async function handleAdminSubmit(e) {
                 expires_at: expiresAt ? new Date(expiresAt).toISOString() : null
             };
             
+            if (password) {
+                updates.password = password;
+            }
+            
             const { error } = await supabase
                 .from('admins')
                 .update(updates)
@@ -256,26 +260,18 @@ async function handleAdminSubmit(e) {
             if (error) throw error;
             showToast('管理员已更新', 'success');
         } else {
-            const { error: signUpError } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: { role: 'admin', username }
-                }
-            });
-            
-            if (signUpError) throw signUpError;
-            
-            const user = await auth.getCurrentUser();
+            if (!password) {
+                throw new Error('请输入密码');
+            }
             
             const { error } = await supabase
                 .from('admins')
                 .insert({
                     username,
                     email,
+                    password,
                     is_active: isActive,
                     expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
-                    user_id: user?.id,
                     created_by: superAdmin?.id
                 });
             

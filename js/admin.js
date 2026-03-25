@@ -1,10 +1,14 @@
 let contestants = [];
 let judges = [];
+let judgeGroups = [];
 let events = [];
 let currentEventId = null;
 let systemState = null;
 let subscriptions = [];
 let confirmCallback = null;
+let currentAdmin = null;
+
+const ADMIN_SESSION_KEY = 'admin_session';
 
 document.addEventListener('DOMContentLoaded', async () => {
     initEventListeners();
@@ -27,9 +31,11 @@ function initEventListeners() {
     document.getElementById('resetScoresBtn').addEventListener('click', handleResetScores);
     document.getElementById('addContestantBtn').addEventListener('click', () => openContestantModal());
     document.getElementById('addJudgeBtn').addEventListener('click', () => openJudgeModal());
+    document.getElementById('addGroupBtn').addEventListener('click', () => openGroupModal());
     
     document.getElementById('contestantForm').addEventListener('submit', handleContestantSubmit);
     document.getElementById('judgeForm').addEventListener('submit', handleJudgeSubmit);
+    document.getElementById('groupForm').addEventListener('submit', handleGroupSubmit);
     document.getElementById('confirmBtn').addEventListener('click', handleConfirm);
     
     document.getElementById('eventSelect').addEventListener('change', handleEventChange);
@@ -42,22 +48,35 @@ function initEventListeners() {
 }
 
 async function checkAuth() {
-    const session = await auth.getSession();
-    if (session) {
-        showAdminSection();
-        await loadEvents();
-        await loadData();
-        subscribeToChanges();
+    const savedAdmin = localStorage.getItem(ADMIN_SESSION_KEY);
+    if (savedAdmin) {
+        try {
+            currentAdmin = JSON.parse(savedAdmin);
+            showAdminSection();
+            await loadEvents();
+            await loadData();
+            subscribeToChanges();
+        } catch (error) {
+            localStorage.removeItem(ADMIN_SESSION_KEY);
+            currentAdmin = null;
+        }
     }
 }
 
 async function handleLogin(e) {
     e.preventDefault();
-    const email = document.getElementById('email').value;
+    const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     
     try {
-        await auth.signIn(email, password);
+        const result = await db.verifyAdminLogin(username, password);
+        if (!result || result.length === 0) {
+            throw new Error('用户名或密码错误');
+        }
+        
+        currentAdmin = result[0];
+        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(currentAdmin));
+        
         showAdminSection();
         await loadEvents();
         await loadData();
@@ -68,9 +87,10 @@ async function handleLogin(e) {
     }
 }
 
-async function handleLogout() {
+function handleLogout() {
     subscriptions.forEach(sub => sub.unsubscribe());
-    await auth.signOut();
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    currentAdmin = null;
     document.getElementById('loginSection').classList.remove('hidden');
     document.getElementById('adminSection').classList.add('hidden');
     showToast('已退出登录', 'success');
@@ -171,15 +191,17 @@ async function switchToEvent(eventId) {
 
 async function loadData() {
     try {
-        const [state, contestantList, judgeList] = await Promise.all([
+        const [state, contestantList, judgeList, groupList] = await Promise.all([
             db.getSystemState(),
             db.getContestants(currentEventId),
-            db.getJudges(currentEventId)
+            db.getJudges(currentEventId),
+            db.getJudgeGroups(currentEventId)
         ]);
         
         systemState = state;
         contestants = contestantList;
         judges = judgeList;
+        judgeGroups = groupList;
         
         updateUI();
     } catch (error) {
@@ -194,6 +216,7 @@ function updateUI() {
     updateLockButton();
     updateCurrentContestantPreview();
     updateContestantList();
+    updateGroupList();
     updateJudgeList();
 }
 
@@ -347,6 +370,56 @@ function updateContestantList() {
     }).join('');
 }
 
+function updateGroupList() {
+    const container = document.getElementById('groupList');
+    
+    if (!currentEventId) {
+        container.innerHTML = `
+            <div class="empty-state py-4">
+                <p class="text-muted">请先选择活动</p>
+            </div>
+        `;
+        return;
+    }
+    
+    if (judgeGroups.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state py-4">
+                <p class="text-muted">暂无分组</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = judgeGroups.map(group => {
+        const judgeCount = judges.filter(j => j.group_id === group.id).length;
+        return `
+            <div class="flex items-center justify-between p-3 rounded-lg bg-background">
+                <div class="flex items-center gap-3">
+                    <div>
+                        <div class="font-medium">${group.name}</div>
+                        <div class="text-muted text-sm">权重: ${group.weight} | 评委: ${judgeCount}人</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="btn btn-secondary btn-sm" onclick="editGroup('${group.id}')" title="编辑">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteGroup('${group.id}')" title="删除" ${group.name === '默认分组' ? 'disabled' : ''}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 function updateJudgeList() {
     const container = document.getElementById('judgeList');
     
@@ -368,30 +441,34 @@ function updateJudgeList() {
         return;
     }
     
-    container.innerHTML = judges.map(judge => `
-        <div class="flex items-center justify-between p-3 rounded-lg bg-background">
-            <div class="flex items-center gap-3">
-                <span class="badge badge-primary">${judge.judge_number}</span>
-                <div>
-                    <div class="font-medium">${judge.username}</div>
+    container.innerHTML = judges.map(judge => {
+        const groupName = judge.judge_groups ? judge.judge_groups.name : '未分组';
+        return `
+            <div class="flex items-center justify-between p-3 rounded-lg bg-background">
+                <div class="flex items-center gap-3">
+                    <span class="badge badge-primary">${judge.judge_number}</span>
+                    <div>
+                        <div class="font-medium">${judge.username}</div>
+                        <div class="text-muted text-sm">${groupName}</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="btn btn-secondary btn-sm" onclick="editJudge('${judge.id}')" title="编辑">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteJudge('${judge.id}')" title="删除">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
-                <button class="btn btn-secondary btn-sm" onclick="editJudge('${judge.id}')" title="编辑">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteJudge('${judge.id}')" title="删除">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 async function handleDisplayModeChange(e) {
@@ -587,6 +664,8 @@ function openJudgeModal(judge = null) {
         return;
     }
     
+    updateGroupSelect();
+    
     const modal = document.getElementById('judgeModal');
     const title = document.getElementById('judgeModalTitle');
     
@@ -598,15 +677,31 @@ function openJudgeModal(judge = null) {
         document.getElementById('judgePasswordInput').placeholder = '留空则不修改密码';
         document.getElementById('judgePasswordInput').required = false;
         document.getElementById('judgeNumberInput').value = judge.judge_number;
+        document.getElementById('judgeGroupSelect').value = judge.group_id || '';
     } else {
         title.textContent = '添加评委';
         document.getElementById('judgeForm').reset();
         document.getElementById('judgeId').value = '';
         document.getElementById('judgePasswordInput').placeholder = '请输入登录密码';
         document.getElementById('judgePasswordInput').required = true;
+        if (judgeGroups.length > 0) {
+            document.getElementById('judgeGroupSelect').value = judgeGroups[0].id;
+        }
     }
     
     modal.classList.add('active');
+}
+
+function updateGroupSelect() {
+    const select = document.getElementById('judgeGroupSelect');
+    select.innerHTML = '<option value="">请选择分组</option>';
+    
+    judgeGroups.forEach(group => {
+        const option = document.createElement('option');
+        option.value = group.id;
+        option.textContent = `${group.name} (权重: ${group.weight})`;
+        select.appendChild(option);
+    });
 }
 
 function closeJudgeModal() {
@@ -627,6 +722,7 @@ async function handleJudgeSubmit(e) {
     const data = {
         username: document.getElementById('judgeUsernameInput').value,
         judge_number: parseInt(document.getElementById('judgeNumberInput').value),
+        group_id: document.getElementById('judgeGroupSelect').value || null,
         event_id: currentEventId
     };
     
@@ -901,6 +997,92 @@ async function handleConfirm() {
     closeConfirmModal();
 }
 
+function openGroupModal(group = null) {
+    if (!currentEventId) {
+        showToast('请先选择活动', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('groupModal');
+    const title = document.getElementById('groupModalTitle');
+    
+    if (group) {
+        title.textContent = '编辑分组';
+        document.getElementById('groupId').value = group.id;
+        document.getElementById('groupNameInput').value = group.name;
+        document.getElementById('groupWeightInput').value = group.weight;
+    } else {
+        title.textContent = '添加分组';
+        document.getElementById('groupForm').reset();
+        document.getElementById('groupId').value = '';
+        document.getElementById('groupWeightInput').value = '1.00';
+    }
+    
+    modal.classList.add('active');
+}
+
+function closeGroupModal() {
+    document.getElementById('groupModal').classList.remove('active');
+}
+
+function editGroup(id) {
+    const group = judgeGroups.find(g => g.id === id);
+    if (group) {
+        openGroupModal(group);
+    }
+}
+
+async function handleGroupSubmit(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('groupId').value;
+    const data = {
+        name: document.getElementById('groupNameInput').value,
+        weight: parseFloat(document.getElementById('groupWeightInput').value),
+        event_id: currentEventId
+    };
+    
+    try {
+        if (id) {
+            await db.updateJudgeGroup(id, data);
+            showToast('分组已更新', 'success');
+        } else {
+            await db.createJudgeGroup(data);
+            showToast('分组已添加', 'success');
+        }
+        closeGroupModal();
+        judgeGroups = await db.getJudgeGroups(currentEventId);
+        updateUI();
+    } catch (error) {
+        showToast(error.message || '操作失败', 'error');
+    }
+}
+
+async function deleteGroup(id) {
+    const group = judgeGroups.find(g => g.id === id);
+    if (group && group.name === '默认分组') {
+        showToast('默认分组不能删除', 'error');
+        return;
+    }
+    
+    const judgeCount = judges.filter(j => j.group_id === id).length;
+    const message = judgeCount > 0 
+        ? `确定要删除该分组吗？该分组下的 ${judgeCount} 名评委将变为未分组状态。`
+        : '确定要删除该分组吗？';
+    
+    openConfirmModal('删除分组', message, async () => {
+        try {
+            await db.deleteJudgeGroup(id);
+            judgeGroups = await db.getJudgeGroups(currentEventId);
+            judges = await db.getJudges(currentEventId);
+            updateUI();
+            showToast('分组已删除', 'success');
+        } catch (error) {
+            showToast('删除失败', 'error');
+        }
+    });
+}
+
 function subscribeToChanges() {
     const stateSub = db.subscribeToSystemState((payload) => {
         systemState = payload.new;
@@ -920,6 +1102,12 @@ function subscribeToChanges() {
         updateEventStatus();
     });
     subscriptions.push(eventSub);
+    
+    const groupSub = db.subscribeToJudgeGroups(async () => {
+        judgeGroups = await db.getJudgeGroups(currentEventId);
+        updateUI();
+    });
+    subscriptions.push(groupSub);
 }
 
 function showToast(message, type = 'success') {
@@ -948,8 +1136,11 @@ window.editContestant = editContestant;
 window.deleteContestant = deleteContestant;
 window.editJudge = editJudge;
 window.deleteJudge = deleteJudge;
+window.editGroup = editGroup;
+window.deleteGroup = deleteGroup;
 window.closeContestantModal = closeContestantModal;
 window.closeJudgeModal = closeJudgeModal;
+window.closeGroupModal = closeGroupModal;
 window.closeConfirmModal = closeConfirmModal;
 window.closeEventModal = closeEventModal;
 window.closeEventListModal = closeEventListModal;

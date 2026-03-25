@@ -48,8 +48,8 @@
                 </div>
                 <form id="loginForm">
                     <div class="form-group">
-                        <label class="form-label" for="email">邮箱</label>
-                        <input type="email" id="email" class="form-input" placeholder="请输入管理员邮箱" required>
+                        <label class="form-label" for="username">用户名</label>
+                        <input type="text" id="username" class="form-input" placeholder="请输入用户名" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="password">密码</label>
@@ -218,6 +218,24 @@
 
                     <div class="card">
                         <div class="card-header flex justify-between items-center">
+                            <h3 class="card-title">评委分组</h3>
+                            <button id="addGroupBtn" class="btn btn-primary btn-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                添加分组
+                            </button>
+                        </div>
+                        <div id="groupList" class="space-y-2 max-h-60 overflow-y-auto">
+                            <div class="empty-state py-4">
+                                <p class="text-muted">暂无分组</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header flex justify-between items-center">
                             <h3 class="card-title">评委列表</h3>
                             <button id="addJudgeBtn" class="btn btn-primary btn-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -336,9 +354,47 @@
                         <label class="form-label" for="judgeNumberInput">编号 *</label>
                         <input type="number" id="judgeNumberInput" class="form-input" placeholder="请输入评委编号" min="1" required>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label" for="judgeGroupSelect">评委分组</label>
+                        <select id="judgeGroupSelect" class="form-input">
+                            <option value="">请选择分组</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeJudgeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="groupModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="groupModalTitle">添加分组</h3>
+                <button class="btn btn-secondary btn-sm" onclick="closeGroupModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="groupForm">
+                <div class="modal-body">
+                    <input type="hidden" id="groupId">
+                    <div class="form-group">
+                        <label class="form-label" for="groupNameInput">分组名称 *</label>
+                        <input type="text" id="groupNameInput" class="form-input" placeholder="请输入分组名称" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="groupWeightInput">权重值 *</label>
+                        <input type="number" id="groupWeightInput" class="form-input" placeholder="请输入权重值 (0-10)" min="0" max="10" step="0.01" value="1.00" required>
+                        <p class="text-sm text-muted mt-1">权重值用于加权平均计算，建议范围 0.1-2.0</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeGroupModal()">取消</button>
                     <button type="submit" class="btn btn-primary">保存</button>
                 </div>
             </form>

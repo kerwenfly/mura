@@ -1,5 +1,5 @@
-const SUPABASE_URL = 'https://dwkmjxwaknxbxgewdnlu.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3a21qeHdha254YnhnZXdkbmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNDM2OTYsImV4cCI6MjA4OTkxOTY5Nn0.6B3fvbMYo4S76_JjP1I_ztrtRbFvN79FoJLAeNj_3Js';
+const SUPABASE_URL = 'https://wbhhcqmcltodpemjmdsq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiaGhjcW1jbHRvZHBlbWptZHNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDA3NjQsImV4cCI6MjA5MDAxNjc2NH0.Z8qgPb3Oe59Yn-VCaVDjXFz4D2JbkIlvOJzso0_MBww';
 
 let supabaseClient = null;
 
@@ -63,7 +63,9 @@ const db = {
 
     async getJudges(eventId = null) {
         const supabase = getSupabase();
-        let query = supabase.from('judges').select('id, username, judge_number, created_at').order('judge_number', { ascending: true });
+        let query = supabase.from('judges')
+            .select('id, username, judge_number, created_at, group_id, judge_groups(id, name, weight)')
+            .order('judge_number', { ascending: true });
         if (eventId) query = query.eq('event_id', eventId);
         const { data, error } = await query;
         if (error) throw error;
@@ -79,14 +81,14 @@ const db = {
 
     async createJudge(judge) {
         const supabase = getSupabase();
-        const { data, error } = await supabase.from('judges').insert(judge).select('id, username, judge_number, created_at').single();
+        const { data, error } = await supabase.from('judges').insert(judge).select('id, username, judge_number, created_at, group_id').single();
         if (error) throw error;
         return data;
     },
 
     async updateJudge(id, updates) {
         const supabase = getSupabase();
-        const { data, error } = await supabase.from('judges').update(updates).eq('id', id).select('id, username, judge_number, created_at').single();
+        const { data, error } = await supabase.from('judges').update(updates).eq('id', id).select('id, username, judge_number, created_at, group_id').single();
         if (error) throw error;
         return data;
     },
@@ -94,6 +96,36 @@ const db = {
     async deleteJudge(id) {
         const supabase = getSupabase();
         const { error } = await supabase.from('judges').delete().eq('id', id);
+        if (error) throw error;
+    },
+
+    async getJudgeGroups(eventId) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.from('judge_groups')
+            .select('*')
+            .eq('event_id', eventId)
+            .order('created_at', { ascending: true });
+        if (error) throw error;
+        return data;
+    },
+
+    async createJudgeGroup(group) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.from('judge_groups').insert(group).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    async updateJudgeGroup(id, updates) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.from('judge_groups').update(updates).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteJudgeGroup(id) {
+        const supabase = getSupabase();
+        const { error } = await supabase.from('judge_groups').delete().eq('id', id);
         if (error) throw error;
     },
 
@@ -253,6 +285,18 @@ const db = {
     subscribeToEvents(callback) {
         const supabase = getSupabase();
         return supabase.channel('events-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, callback).subscribe();
+    },
+
+    subscribeToJudgeGroups(callback) {
+        const supabase = getSupabase();
+        return supabase.channel('judge-groups-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'judge_groups' }, callback).subscribe();
+    },
+
+    async verifyAdminLogin(username, password) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.rpc('verify_admin_login', { p_username: username, p_password: password });
+        if (error) throw error;
+        return data;
     }
 };
 
