@@ -64,7 +64,7 @@ const db = {
     async getJudges(eventId = null) {
         const supabase = getSupabase();
         let query = supabase.from('judges')
-            .select('id, username, judge_number, created_at, group_id, judge_groups(id, name, weight)')
+            .select('id, username, judge_number, created_at, group_id, judge_groups(id, name)')
             .order('judge_number', { ascending: true });
         if (eventId) query = query.eq('event_id', eventId);
         const { data, error } = await query;
@@ -129,40 +129,144 @@ const db = {
         if (error) throw error;
     },
 
-    async getScore(contestantId, judgeId) {
+    // 评分轮次管理
+    async getScoringRounds(eventId) {
         const supabase = getSupabase();
-        const { data, error } = await supabase.from('scores').select('*').eq('contestant_id', contestantId).eq('judge_id', judgeId).maybeSingle();
+        const { data, error } = await supabase.from('scoring_rounds')
+            .select('*')
+            .eq('event_id', eventId)
+            .order('round_order', { ascending: true });
         if (error) throw error;
         return data;
     },
 
-    async getScoresByContestant(contestantId) {
+    async getScoringRound(id) {
         const supabase = getSupabase();
-        const { data, error } = await supabase.from('scores').select('*, judges(judge_number)').eq('contestant_id', contestantId);
+        const { data, error } = await supabase.from('scoring_rounds').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data;
+    },
+
+    async createScoringRound(round) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.from('scoring_rounds').insert(round).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    async updateScoringRound(id, updates) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.from('scoring_rounds').update(updates).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteScoringRound(id) {
+        const supabase = getSupabase();
+        const { error } = await supabase.from('scoring_rounds').delete().eq('id', id);
+        if (error) throw error;
+    },
+
+    async setActiveRound(roundId) {
+        const supabase = getSupabase();
+        const { error } = await supabase.rpc('set_active_round', { p_round_id: roundId });
+        if (error) throw error;
+    },
+
+    // 轮次分组设置
+    async getRoundGroupSettings(roundId) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.from('round_group_settings')
+            .select('*, judge_groups(name)')
+            .eq('round_id', roundId);
+        if (error) throw error;
+        return data;
+    },
+
+    async createRoundGroupSetting(setting) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.from('round_group_settings').insert(setting).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    async updateRoundGroupSetting(id, updates) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.from('round_group_settings').update(updates).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteRoundGroupSettings(roundId) {
+        const supabase = getSupabase();
+        const { error } = await supabase.from('round_group_settings').delete().eq('round_id', roundId);
+        if (error) throw error;
+    },
+
+    async saveRoundGroupSettings(roundId, settings) {
+        const supabase = getSupabase();
+        for (const setting of settings) {
+            const { error } = await supabase.from('round_group_settings')
+                .upsert(setting, { onConflict: 'round_id,group_id' })
+                .select();
+            if (error) throw error;
+        }
+    },
+
+    // 评分数据
+    async getScore(contestantId, judgeId, roundId) {
+        const supabase = getSupabase();
+        let query = supabase.from('scores').select('*')
+            .eq('contestant_id', contestantId)
+            .eq('judge_id', judgeId);
+        if (roundId) query = query.eq('round_id', roundId);
+        const { data, error } = await query.maybeSingle();
+        if (error) throw error;
+        return data;
+    },
+
+    async getScoresByContestant(contestantId, roundId = null) {
+        const supabase = getSupabase();
+        let query = supabase.from('scores').select('*, judges(judge_number)').eq('contestant_id', contestantId);
+        if (roundId) query = query.eq('round_id', roundId);
+        const { data, error } = await query;
         if (error) throw error;
         return data;
     },
 
     async getScoresByJudge(judgeId, eventId = null) {
         const supabase = getSupabase();
-        let query = supabase.from('scores').select('*, contestants(name, number)').eq('judge_id', judgeId);
+        let query = supabase.from('scores').select('*, contestants(name, number), scoring_rounds(name)').eq('judge_id', judgeId);
         if (eventId) query = query.eq('event_id', eventId);
         const { data, error } = await query;
         if (error) throw error;
         return data;
     },
 
-    async submitScore(contestantId, judgeId, score, eventId = null) {
+    async getScoresByRound(roundId) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.from('scores')
+            .select('*, judges(judge_number, username), contestants(name, number)')
+            .eq('round_id', roundId);
+        if (error) throw error;
+        return data;
+    },
+
+    async submitScore(contestantId, judgeId, score, eventId, roundId) {
         const supabase = getSupabase();
         const scoreData = {
             contestant_id: contestantId,
             judge_id: judgeId,
             score: score,
+            event_id: eventId,
+            round_id: roundId,
             updated_at: new Date().toISOString()
         };
-        if (eventId) scoreData.event_id = eventId;
         
-        const { data, error } = await supabase.from('scores').upsert(scoreData, { onConflict: 'contestant_id,judge_id' }).select().single();
+        const { data, error } = await supabase.from('scores')
+            .upsert(scoreData, { onConflict: 'contestant_id,judge_id,round_id' })
+            .select()
+            .single();
         if (error) throw error;
         return data;
     },
@@ -173,10 +277,11 @@ const db = {
         if (error) throw error;
     },
 
-    async deleteAllScores(eventId = null) {
+    async deleteAllScores(eventId = null, roundId = null) {
         const supabase = getSupabase();
         let query = supabase.from('scores').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         if (eventId) query = query.eq('event_id', eventId);
+        if (roundId) query = query.eq('round_id', roundId);
         const { error } = await query;
         if (error) throw error;
     },
@@ -195,16 +300,27 @@ const db = {
         return data;
     },
 
-    async getFinalResults() {
+    // 结果计算
+    async getRoundResults(roundId) {
         const supabase = getSupabase();
-        const { data, error } = await supabase.rpc('get_final_results');
+        const { data, error } = await supabase.rpc('get_round_results', { p_round_id: roundId });
         if (error) throw error;
         return data;
     },
 
-    async getContestantScores(contestantId) {
+    async getFinalResultsWithRounds(eventId) {
         const supabase = getSupabase();
-        const { data, error } = await supabase.rpc('get_contestant_scores', { p_contestant_id: contestantId });
+        const { data, error } = await supabase.rpc('get_final_results_with_rounds', { p_event_id: eventId });
+        if (error) throw error;
+        return data;
+    },
+
+    async getContestantRoundScores(contestantId, roundId) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.rpc('get_contestant_round_scores', { 
+            p_contestant_id: contestantId, 
+            p_round_id: roundId 
+        });
         if (error) throw error;
         return data;
     },
@@ -267,6 +383,7 @@ const db = {
         return data;
     },
 
+    // 订阅
     subscribeToScores(callback) {
         const supabase = getSupabase();
         return supabase.channel('scores-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'scores' }, callback).subscribe();
@@ -290,6 +407,16 @@ const db = {
     subscribeToJudgeGroups(callback) {
         const supabase = getSupabase();
         return supabase.channel('judge-groups-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'judge_groups' }, callback).subscribe();
+    },
+
+    subscribeToScoringRounds(callback) {
+        const supabase = getSupabase();
+        return supabase.channel('scoring-rounds-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'scoring_rounds' }, callback).subscribe();
+    },
+
+    subscribeToRoundGroupSettings(callback) {
+        const supabase = getSupabase();
+        return supabase.channel('round-group-settings-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'round_group_settings' }, callback).subscribe();
     },
 
     async verifyAdminLogin(username, password) {
@@ -378,15 +505,14 @@ const judgeAuth = {
     }
 };
 
-const scoringRules = {
-    average_all: { name: '平均分', description: '所有评委评分的平均值' },
-    average_trimmed: { name: '去高低分平均', description: '去掉一个最高分和一个最低分后的平均值' },
-    median: { name: '中位数', description: '所有评委评分的中位数' },
-    weighted: { name: '加权平均', description: '根据评委权重计算加权平均分' }
+// 计算方法说明
+const calculationMethods = {
+    average: { name: '平均分', description: '所有评委评分的平均值' },
+    trimmed_average: { name: '去高低分平均', description: '去除指定数量的最高分和最低分后的平均值' }
 };
 
 window.db = db;
 window.auth = auth;
 window.judgeAuth = judgeAuth;
-window.scoringRules = scoringRules;
+window.calculationMethods = calculationMethods;
 window.getSupabase = getSupabase;

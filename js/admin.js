@@ -1,8 +1,10 @@
 let contestants = [];
 let judges = [];
 let judgeGroups = [];
+let scoringRounds = [];
 let events = [];
 let currentEventId = null;
+let currentRoundId = null;
 let systemState = null;
 let subscriptions = [];
 let confirmCallback = null;
@@ -23,19 +25,17 @@ function initEventListeners() {
         radio.addEventListener('change', handleDisplayModeChange);
     });
     
-    document.querySelectorAll('input[name="scoringRule"]').forEach(radio => {
-        radio.addEventListener('change', handleScoringRuleChange);
-    });
-    
     document.getElementById('lockBtn').addEventListener('click', handleLockToggle);
     document.getElementById('resetScoresBtn').addEventListener('click', handleResetScores);
     document.getElementById('addContestantBtn').addEventListener('click', () => openContestantModal());
     document.getElementById('addJudgeBtn').addEventListener('click', () => openJudgeModal());
     document.getElementById('addGroupBtn').addEventListener('click', () => openGroupModal());
+    document.getElementById('addRoundBtn').addEventListener('click', () => openRoundModal());
     
     document.getElementById('contestantForm').addEventListener('submit', handleContestantSubmit);
     document.getElementById('judgeForm').addEventListener('submit', handleJudgeSubmit);
     document.getElementById('groupForm').addEventListener('submit', handleGroupSubmit);
+    document.getElementById('roundForm').addEventListener('submit', handleRoundSubmit);
     document.getElementById('confirmBtn').addEventListener('click', handleConfirm);
     
     document.getElementById('eventSelect').addEventListener('change', handleEventChange);
@@ -45,6 +45,8 @@ function initEventListeners() {
     document.getElementById('copyEventForm').addEventListener('submit', handleCopyEventSubmit);
     
     document.getElementById('avatarInput').addEventListener('change', handleAvatarUpload);
+    
+    initThemeSettings();
 }
 
 async function checkAuth() {
@@ -190,18 +192,37 @@ async function switchToEvent(eventId) {
 }
 
 async function loadData() {
+    if (!currentEventId) {
+        contestants = [];
+        judges = [];
+        judgeGroups = [];
+        scoringRounds = [];
+        currentRoundId = null;
+        updateUI();
+        return;
+    }
+    
     try {
-        const [state, contestantList, judgeList, groupList] = await Promise.all([
+        const [state, contestantList, judgeList, groupList, roundList] = await Promise.all([
             db.getSystemState(),
             db.getContestants(currentEventId),
             db.getJudges(currentEventId),
-            db.getJudgeGroups(currentEventId)
+            db.getJudgeGroups(currentEventId),
+            db.getScoringRounds(currentEventId)
         ]);
         
         systemState = state;
         contestants = contestantList;
         judges = judgeList;
         judgeGroups = groupList;
+        scoringRounds = roundList;
+        
+        if (state.current_round_id) {
+            currentRoundId = state.current_round_id;
+        } else if (roundList.length > 0) {
+            const activeRound = roundList.find(r => r.is_active);
+            currentRoundId = activeRound ? activeRound.id : roundList[0].id;
+        }
         
         updateUI();
     } catch (error) {
@@ -212,25 +233,19 @@ async function loadData() {
 
 function updateUI() {
     updateDisplayModeRadios();
-    updateScoringRuleRadios();
     updateLockButton();
+    updateCurrentRoundBadge();
     updateCurrentContestantPreview();
     updateContestantList();
     updateGroupList();
     updateJudgeList();
+    updateRoundList();
 }
 
 function updateDisplayModeRadios() {
     const mode = systemState?.display_mode || 'waiting';
     document.querySelectorAll('input[name="displayMode"]').forEach(radio => {
         radio.checked = radio.value === mode;
-    });
-}
-
-function updateScoringRuleRadios() {
-    const rule = systemState?.scoring_rule || 'average_all';
-    document.querySelectorAll('input[name="scoringRule"]').forEach(radio => {
-        radio.checked = radio.value === rule;
     });
 }
 
@@ -260,6 +275,18 @@ function updateLockButton() {
     }
 }
 
+function updateCurrentRoundBadge() {
+    const badge = document.getElementById('currentRoundBadge');
+    const currentRound = scoringRounds.find(r => r.id === currentRoundId);
+    
+    if (currentRound) {
+        badge.textContent = currentRound.name;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
 function updateCurrentContestantPreview() {
     const container = document.getElementById('currentContestantPreview');
     const status = document.getElementById('currentStatus');
@@ -276,18 +303,31 @@ function updateCurrentContestantPreview() {
             ? `<img src="${contestant.avatar_url}" alt="${contestant.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
             : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
         
+        // 生成轮次选择下拉框
+        const roundSelectHtml = scoringRounds.length > 0 ? `
+            <div class="mt-4">
+                <label class="form-label text-sm">当前评分轮次</label>
+                <select id="contestantRoundSelect" class="form-input" onchange="handleContestantRoundChange()">
+                    ${scoringRounds.map(round => `
+                        <option value="${round.id}" ${round.id === currentRoundId ? 'selected' : ''}>${round.name}</option>
+                    `).join('')}
+                </select>
+            </div>
+        ` : '';
+        
         container.innerHTML = `
             <div class="flex flex-col md:flex-row items-center gap-4">
                 <div class="avatar avatar-lg">
                     ${avatarHtml}
                 </div>
-                <div class="text-center md:text-left">
+                <div class="text-center md:text-left flex-1">
                     <h4 class="text-xl font-semibold">${contestant.name}</h4>
-                    <div class="flex items-center justify-center md:justify-start gap-2 mt-1">
+                    <div class="flex flex-col items-center justify-center md:items-start md:justify-start gap-1 mt-1">
                         <span class="badge badge-primary">${contestant.number}</span>
                         <span class="text-muted">${contestant.department || ''}</span>
                     </div>
                     <p class="text-muted mt-2">${contestant.description || '暂无简介'}</p>
+                    ${roundSelectHtml}
                 </div>
             </div>
         `;
@@ -306,6 +346,15 @@ function updateCurrentContestantPreview() {
                 <p>请从选手列表中选择当前选手</p>
             </div>
         `;
+    }
+}
+
+async function handleContestantRoundChange() {
+    const select = document.getElementById('contestantRoundSelect');
+    const newRoundId = select.value;
+    
+    if (newRoundId && newRoundId !== currentRoundId) {
+        await setActiveRound(newRoundId);
     }
 }
 
@@ -334,7 +383,7 @@ function updateContestantList() {
         const isCurrent = contestant.id === systemState?.current_contestant_id;
         const avatarHtml = contestant.avatar_url 
             ? `<img src="${contestant.avatar_url}" alt="${contestant.name}" class="w-10 h-10 rounded-full object-cover">`
-            : `<div class="avatar"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>`;
+            : `<div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>`;
         
         return `
             <div class="flex items-center justify-between p-3 rounded-lg bg-background ${isCurrent ? 'ring-2 ring-[var(--primary)]' : ''}">
@@ -398,7 +447,7 @@ function updateGroupList() {
                 <div class="flex items-center gap-3">
                     <div>
                         <div class="font-medium">${group.name}</div>
-                        <div class="text-muted text-sm">权重: ${group.weight} | 评委: ${judgeCount}人</div>
+                        <div class="text-muted text-sm">评委: ${judgeCount}人</div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -471,21 +520,69 @@ function updateJudgeList() {
     }).join('');
 }
 
+function updateRoundList() {
+    const container = document.getElementById('roundList');
+    
+    if (!currentEventId) {
+        container.innerHTML = `
+            <div class="empty-state py-4">
+                <p class="text-muted">请先选择活动</p>
+            </div>
+        `;
+        return;
+    }
+    
+    if (scoringRounds.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state py-4">
+                <p class="text-muted">暂无评分轮次</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = scoringRounds.map(round => {
+        const isCurrent = round.id === currentRoundId;
+        const methodText = round.calculation_method === 'trimmed_average' 
+            ? '去高低分平均'
+            : '平均分';
+        
+        return `
+            <div class="flex items-center justify-between p-3 rounded-lg bg-background ${isCurrent ? 'ring-2 ring-[var(--primary)]' : ''}">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="font-medium">${round.name}</span>
+                        ${isCurrent ? '<span class="badge badge-success">当前</span>' : ''}
+                    </div>
+                    <div class="text-muted text-sm mt-1">
+                        权重: ${round.weight} | ${methodText}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    ${!isCurrent ? `<button class="btn btn-secondary btn-sm" onclick="setActiveRound('${round.id}')" title="设为当前">设为当前</button>` : ''}
+                    <button class="btn btn-secondary btn-sm" onclick="editRound('${round.id}')" title="编辑">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteRound('${round.id}')" title="删除" ${scoringRounds.length <= 1 ? 'disabled' : ''}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 async function handleDisplayModeChange(e) {
     const mode = e.target.value;
     try {
         await db.updateSystemState({ display_mode: mode });
         showToast('显示模式已更新', 'success');
-    } catch (error) {
-        showToast('更新失败', 'error');
-    }
-}
-
-async function handleScoringRuleChange(e) {
-    const rule = e.target.value;
-    try {
-        await db.updateSystemState({ scoring_rule: rule });
-        showToast('评分规则已更新', 'success');
     } catch (error) {
         showToast('更新失败', 'error');
     }
@@ -507,10 +604,18 @@ async function handleResetScores() {
         return;
     }
     
-    openConfirmModal('重置所有评分', '确定要重置当前活动的所有评分数据吗？此操作不可恢复。', async () => {
+    if (!currentRoundId) {
+        showToast('请先选择评分轮次', 'error');
+        return;
+    }
+    
+    const currentRound = scoringRounds.find(r => r.id === currentRoundId);
+    const roundName = currentRound ? currentRound.name : '当前轮次';
+    
+    openConfirmModal('重置评分', `确定要重置"${roundName}"的所有评分数据吗？此操作不可恢复。`, async () => {
         try {
-            await db.deleteAllScores(currentEventId);
-            showToast('所有评分已重置', 'success');
+            await db.deleteAllScores(currentEventId, currentRoundId);
+            showToast('评分已重置', 'success');
         } catch (error) {
             showToast('重置失败', 'error');
         }
@@ -524,6 +629,18 @@ async function selectContestant(id) {
             display_mode: 'scoring'
         });
         showToast('已切换选手', 'success');
+    } catch (error) {
+        showToast('切换失败', 'error');
+    }
+}
+
+async function setActiveRound(roundId) {
+    try {
+        await db.setActiveRound(roundId);
+        currentRoundId = roundId;
+        updateRoundList();
+        updateCurrentRoundBadge();
+        showToast('已切换评分轮次', 'success');
     } catch (error) {
         showToast('切换失败', 'error');
     }
@@ -699,7 +816,7 @@ function updateGroupSelect() {
     judgeGroups.forEach(group => {
         const option = document.createElement('option');
         option.value = group.id;
-        option.textContent = `${group.name} (权重: ${group.weight})`;
+        option.textContent = group.name;
         select.appendChild(option);
     });
 }
@@ -1010,12 +1127,10 @@ function openGroupModal(group = null) {
         title.textContent = '编辑分组';
         document.getElementById('groupId').value = group.id;
         document.getElementById('groupNameInput').value = group.name;
-        document.getElementById('groupWeightInput').value = group.weight;
     } else {
         title.textContent = '添加分组';
         document.getElementById('groupForm').reset();
         document.getElementById('groupId').value = '';
-        document.getElementById('groupWeightInput').value = '1.00';
     }
     
     modal.classList.add('active');
@@ -1038,7 +1153,6 @@ async function handleGroupSubmit(e) {
     const id = document.getElementById('groupId').value;
     const data = {
         name: document.getElementById('groupNameInput').value,
-        weight: parseFloat(document.getElementById('groupWeightInput').value),
         event_id: currentEventId
     };
     
@@ -1083,6 +1197,203 @@ async function deleteGroup(id) {
     });
 }
 
+// 评分轮次管理
+let roundGroupSettings = [];
+
+async function openRoundModal(round = null) {
+    if (!currentEventId) {
+        showToast('请先选择活动', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('roundModal');
+    const title = document.getElementById('roundModalTitle');
+    
+    if (round) {
+        title.textContent = '编辑评分轮次';
+        document.getElementById('roundId').value = round.id;
+        document.getElementById('roundNameInput').value = round.name;
+        document.getElementById('roundWeightInput').value = round.weight;
+        document.getElementById('roundMethodSelect').value = round.calculation_method;
+        
+        // 加载轮次分组设置
+        try {
+            roundGroupSettings = await db.getRoundGroupSettings(round.id);
+        } catch (error) {
+            roundGroupSettings = [];
+        }
+        
+        handleMethodChange();
+    } else {
+        title.textContent = '添加评分轮次';
+        document.getElementById('roundForm').reset();
+        document.getElementById('roundId').value = '';
+        document.getElementById('roundWeightInput').value = '1.00';
+        document.getElementById('roundMethodSelect').value = 'average';
+        roundGroupSettings = [];
+        document.getElementById('trimSettings').classList.add('hidden');
+    }
+    
+    modal.classList.add('active');
+}
+
+function closeRoundModal() {
+    document.getElementById('roundModal').classList.remove('active');
+    roundGroupSettings = [];
+}
+
+async function editRound(id) {
+    const round = scoringRounds.find(r => r.id === id);
+    if (round) {
+        await openRoundModal(round);
+    }
+}
+
+function handleMethodChange() {
+    const method = document.getElementById('roundMethodSelect').value;
+    const trimSettings = document.getElementById('trimSettings');
+    
+    if (method === 'trimmed_average') {
+        trimSettings.classList.remove('hidden');
+        renderGroupTrimSettings();
+    } else {
+        trimSettings.classList.add('hidden');
+    }
+}
+
+function renderGroupTrimSettings() {
+    const container = document.getElementById('groupTrimSettings');
+    
+    if (judgeGroups.length === 0) {
+        container.innerHTML = '<p class="text-muted">暂无评委分组，请先添加分组</p>';
+        return;
+    }
+    
+    container.innerHTML = judgeGroups.map(group => {
+        const existingSetting = roundGroupSettings.find(s => s.group_id === group.id);
+        const trimHigh = existingSetting?.trim_high_count ?? 1;
+        const trimLow = existingSetting?.trim_low_count ?? 1;
+        
+        return `
+            <div class="p-3 rounded-lg bg-background border border-[var(--border)]">
+                <div class="font-medium mb-2">${group.name}</div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="form-group mb-0">
+                        <label class="form-label text-sm">去除最高分</label>
+                        <input type="number" class="form-input" min="0" max="10" value="${trimHigh}" 
+                               data-group-id="${group.id}" data-field="trim_high">
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="form-label text-sm">去除最低分</label>
+                        <input type="number" class="form-input" min="0" max="10" value="${trimLow}"
+                               data-group-id="${group.id}" data-field="trim_low">
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function handleRoundSubmit(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('roundId').value;
+    const method = document.getElementById('roundMethodSelect').value;
+    
+    const data = {
+        name: document.getElementById('roundNameInput').value,
+        weight: parseFloat(document.getElementById('roundWeightInput').value),
+        calculation_method: method,
+        event_id: currentEventId
+    };
+    
+    if (!id) {
+        data.round_order = scoringRounds.length + 1;
+    }
+    
+    try {
+        let roundId = id;
+        
+        if (id) {
+            await db.updateScoringRound(id, data);
+            showToast('轮次已更新', 'success');
+        } else {
+            const newRound = await db.createScoringRound(data);
+            roundId = newRound.id;
+            if (scoringRounds.length === 0) {
+                await db.setActiveRound(newRound.id);
+                currentRoundId = newRound.id;
+            }
+            showToast('轮次已添加', 'success');
+        }
+        
+        // 保存分组设置
+        if (method === 'trimmed_average') {
+            const groupSettingsContainer = document.getElementById('groupTrimSettings');
+            const inputs = groupSettingsContainer.querySelectorAll('input[data-group-id]');
+            const settings = [];
+            
+            inputs.forEach(input => {
+                const groupId = input.dataset.groupId;
+                const field = input.dataset.field;
+                const value = parseInt(input.value) || 0;
+                
+                let setting = settings.find(s => s.group_id === groupId);
+                if (!setting) {
+                    setting = {
+                        round_id: roundId,
+                        group_id: groupId,
+                        trim_high_count: 1,
+                        trim_low_count: 1
+                    };
+                    settings.push(setting);
+                }
+                
+                if (field === 'trim_high') {
+                    setting.trim_high_count = value;
+                } else if (field === 'trim_low') {
+                    setting.trim_low_count = value;
+                }
+            });
+            
+            // 保存每个分组设置
+            for (const setting of settings) {
+                await db.createRoundGroupSetting(setting);
+            }
+        }
+        
+        closeRoundModal();
+        scoringRounds = await db.getScoringRounds(currentEventId);
+        updateUI();
+    } catch (error) {
+        showToast(error.message || '操作失败', 'error');
+    }
+}
+
+async function deleteRound(id) {
+    if (scoringRounds.length <= 1) {
+        showToast('至少需要保留一个评分轮次', 'error');
+        return;
+    }
+    
+    openConfirmModal('删除评分轮次', '确定要删除该评分轮次吗？该轮次的所有评分数据都会被删除。', async () => {
+        try {
+            await db.deleteScoringRound(id);
+            scoringRounds = await db.getScoringRounds(currentEventId);
+            
+            if (currentRoundId === id && scoringRounds.length > 0) {
+                currentRoundId = scoringRounds[0].id;
+                await db.setActiveRound(currentRoundId);
+            }
+            
+            updateUI();
+            showToast('轮次已删除', 'success');
+        } catch (error) {
+            showToast('删除失败', 'error');
+        }
+    });
+}
+
 function subscribeToChanges() {
     const stateSub = db.subscribeToSystemState((payload) => {
         systemState = payload.new;
@@ -1091,8 +1402,10 @@ function subscribeToChanges() {
     subscriptions.push(stateSub);
     
     const contestantSub = db.subscribeToContestants(async () => {
-        contestants = await db.getContestants(currentEventId);
-        updateUI();
+        if (currentEventId) {
+            contestants = await db.getContestants(currentEventId);
+            updateUI();
+        }
     });
     subscriptions.push(contestantSub);
     
@@ -1104,10 +1417,20 @@ function subscribeToChanges() {
     subscriptions.push(eventSub);
     
     const groupSub = db.subscribeToJudgeGroups(async () => {
-        judgeGroups = await db.getJudgeGroups(currentEventId);
-        updateUI();
+        if (currentEventId) {
+            judgeGroups = await db.getJudgeGroups(currentEventId);
+            updateUI();
+        }
     });
     subscriptions.push(groupSub);
+    
+    const roundSub = db.subscribeToScoringRounds(async () => {
+        if (currentEventId) {
+            scoringRounds = await db.getScoringRounds(currentEventId);
+            updateUI();
+        }
+    });
+    subscriptions.push(roundSub);
 }
 
 function showToast(message, type = 'success') {
@@ -1138,9 +1461,15 @@ window.editJudge = editJudge;
 window.deleteJudge = deleteJudge;
 window.editGroup = editGroup;
 window.deleteGroup = deleteGroup;
+window.setActiveRound = setActiveRound;
+window.editRound = editRound;
+window.deleteRound = deleteRound;
+window.handleMethodChange = handleMethodChange;
+window.handleContestantRoundChange = handleContestantRoundChange;
 window.closeContestantModal = closeContestantModal;
 window.closeJudgeModal = closeJudgeModal;
 window.closeGroupModal = closeGroupModal;
+window.closeRoundModal = closeRoundModal;
 window.closeConfirmModal = closeConfirmModal;
 window.closeEventModal = closeEventModal;
 window.closeEventListModal = closeEventListModal;
@@ -1151,3 +1480,69 @@ window.toggleEventStatus = toggleEventStatus;
 window.deleteEvent = deleteEvent;
 window.openCopyEventModal = openCopyEventModal;
 window.clearAvatar = clearAvatar;
+window.selectTheme = selectTheme;
+
+// 背景主题设置
+const AVAILABLE_THEMES = 4;
+let selectedTheme = 1;
+
+function initThemeSettings() {
+    const grid = document.getElementById('themePreviewGrid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    for (let i = 1; i <= AVAILABLE_THEMES; i++) {
+        const themeItem = document.createElement('div');
+        themeItem.className = 'theme-preview-item';
+        themeItem.setAttribute('data-theme', i);
+        themeItem.onclick = () => selectTheme(i);
+        
+        themeItem.innerHTML = `
+            <img src="img/${i}-1.jpg" alt="主题 ${i} - 等待" class="theme-preview-img">
+            <div class="theme-preview-label">主题 ${i}</div>
+        `;
+        
+        grid.appendChild(themeItem);
+    }
+    
+    loadCurrentTheme();
+    
+    document.getElementById('applyThemeBtn').addEventListener('click', applyTheme);
+}
+
+function selectTheme(themeId) {
+    selectedTheme = themeId;
+    
+    document.querySelectorAll('.theme-preview-item').forEach(item => {
+        item.classList.remove('selected');
+        if (parseInt(item.getAttribute('data-theme')) === themeId) {
+            item.classList.add('selected');
+        }
+    });
+    
+    const themeName = document.getElementById('currentThemeName');
+    if (themeName) {
+        themeName.textContent = `主题 ${themeId}`;
+    }
+}
+
+async function loadCurrentTheme() {
+    try {
+        const state = await db.getSystemState();
+        const theme = state?.display_theme || 1;
+        selectTheme(theme);
+    } catch (error) {
+        console.error('加载主题设置失败:', error);
+    }
+}
+
+async function applyTheme() {
+    try {
+        await db.updateSystemState({ display_theme: selectedTheme });
+        showToast('主题已应用', 'success');
+    } catch (error) {
+        showToast('应用主题失败', 'error');
+        console.error(error);
+    }
+}

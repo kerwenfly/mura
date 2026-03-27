@@ -2,8 +2,11 @@ let currentJudge = null;
 let currentEvent = null;
 let currentContestant = null;
 let currentScore = null;
+let currentRound = null;
+let scoringRounds = [];
 let systemState = null;
 let subscriptions = [];
+let scoreInput = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
     initEventListeners();
@@ -13,7 +16,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 function initEventListeners() {
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-    document.getElementById('scoreSlider').addEventListener('input', handleScoreChange);
     document.getElementById('submitBtn').addEventListener('click', handleSubmitScore);
     document.getElementById('backToEventBtn').addEventListener('click', backToEventSelect);
 }
@@ -26,13 +28,17 @@ async function initPage() {
         currentEvent = { id: savedEventId };
         currentJudge = savedJudge;
         await loadEventInfo();
-        showScoringSection();
-        await loadData();
-        subscribeToChanges();
+        if (currentEvent && currentEvent.name) {
+            showScoringSection();
+            await loadData();
+            subscribeToChanges();
+        }
     } else if (savedEventId) {
         currentEvent = { id: savedEventId };
         await loadEventInfo();
-        showLoginSection();
+        if (currentEvent && currentEvent.name) {
+            showLoginSection();
+        }
     } else {
         await loadActiveEvents();
     }
@@ -83,11 +89,26 @@ function selectEvent(eventId, eventName) {
 async function loadEventInfo() {
     try {
         const event = await db.getEvent(currentEvent.id);
+        if (!event) {
+            judgeAuth.clearCurrentEvent();
+            currentEvent = null;
+            showToast('活动不存在，请重新选择', 'error');
+            document.getElementById('eventSelectSection').classList.remove('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+            loadActiveEvents();
+            return;
+        }
         currentEvent = event;
         const nameEl = document.getElementById('currentEventName');
         if (nameEl) nameEl.textContent = event.name;
     } catch (error) {
         console.error('加载活动信息失败:', error);
+        judgeAuth.clearCurrentEvent();
+        currentEvent = null;
+        showToast('活动不存在，请重新选择', 'error');
+        document.getElementById('eventSelectSection').classList.remove('hidden');
+        document.getElementById('loginSection').classList.add('hidden');
+        loadActiveEvents();
     }
 }
 
@@ -141,6 +162,7 @@ function handleLogout() {
     currentJudge = null;
     currentContestant = null;
     currentScore = null;
+    currentRound = null;
     document.getElementById('eventSelectSection').classList.remove('hidden');
     document.getElementById('loginSection').classList.add('hidden');
     document.getElementById('scoringSection').classList.add('hidden');
@@ -160,11 +182,27 @@ function showScoringSection() {
 
 async function loadData() {
     try {
-        systemState = await db.getSystemState();
+        const [state, rounds] = await Promise.all([
+            db.getSystemState(),
+            db.getScoringRounds(currentEvent.id)
+        ]);
+        
+        systemState = state;
+        scoringRounds = rounds;
+        
+        // 获取当前轮次
+        if (state.current_round_id) {
+            currentRound = rounds.find(r => r.id === state.current_round_id);
+        } else if (rounds.length > 0) {
+            const activeRound = rounds.find(r => r.is_active);
+            currentRound = activeRound || rounds[0];
+        }
+        
+        updateRoundInfo();
         updateLockStatus();
         
-        if (systemState.current_contestant_id) {
-            currentContestant = await db.getContestant(systemState.current_contestant_id);
+        if (state.current_contestant_id) {
+            currentContestant = await db.getContestant(state.current_contestant_id);
             updateContestantInfo();
             await loadCurrentScore();
         } else {
@@ -175,6 +213,25 @@ async function loadData() {
     } catch (error) {
         showToast('加载数据失败', 'error');
         console.error(error);
+    }
+}
+
+function updateRoundInfo() {
+    const roundNameEl = document.getElementById('currentRoundName');
+    const roundBadgeEl = document.getElementById('roundBadge');
+    const navRoundNameEl = document.getElementById('navRoundName');
+    
+    if (currentRound) {
+        if (roundNameEl) roundNameEl.textContent = currentRound.name;
+        if (roundBadgeEl) {
+            roundBadgeEl.textContent = currentRound.name;
+            roundBadgeEl.classList.remove('hidden');
+        }
+        if (navRoundNameEl) navRoundNameEl.textContent = currentRound.name;
+    } else {
+        if (roundNameEl) roundNameEl.textContent = '未设置轮次';
+        if (roundBadgeEl) roundBadgeEl.classList.add('hidden');
+        if (navRoundNameEl) navRoundNameEl.textContent = '';
     }
 }
 
@@ -189,7 +246,7 @@ function updateLockStatus() {
         if (slider) slider.disabled = true;
     } else {
         if (lockedAlert) lockedAlert.classList.add('hidden');
-        if (submitBtn) submitBtn.disabled = !currentContestant;
+        if (submitBtn) submitBtn.disabled = !currentContestant || !currentRound;
         if (slider) slider.disabled = false;
     }
 }
@@ -211,12 +268,14 @@ function updateContestantInfo() {
     const deptEl = document.getElementById('contestantDepartment');
     const descEl = document.getElementById('contestantDescription');
     const submitBtn = document.getElementById('submitBtn');
+    const navContestantNameEl = document.getElementById('navContestantName');
     
     if (nameEl) nameEl.textContent = currentContestant.name;
     if (numberEl) numberEl.textContent = `编号: ${currentContestant.number}`;
     if (deptEl) deptEl.textContent = currentContestant.department || '';
     if (descEl) descEl.textContent = currentContestant.description || '暂无简介';
-    if (submitBtn) submitBtn.disabled = systemState?.is_locked;
+    if (submitBtn) submitBtn.disabled = systemState?.is_locked || !currentRound;
+    if (navContestantNameEl) navContestantNameEl.textContent = currentContestant.name;
     
     const avatarContainer = document.querySelector('#contestantInfo .avatar');
     if (avatarContainer) {
@@ -232,33 +291,34 @@ function showNoContestant() {
     const scoringArea = document.getElementById('scoringArea');
     const noContestantArea = document.getElementById('noContestantArea');
     const submitBtn = document.getElementById('submitBtn');
+    const navContestantNameEl = document.getElementById('navContestantName');
     
     if (scoringArea) scoringArea.classList.add('hidden');
     if (noContestantArea) noContestantArea.classList.remove('hidden');
     if (submitBtn) submitBtn.disabled = true;
+    if (navContestantNameEl) navContestantNameEl.textContent = '';
 }
 
 async function loadCurrentScore() {
-    if (!currentContestant || !currentJudge) return;
+    if (!currentContestant || !currentJudge || !currentRound) return;
     
     try {
-        currentScore = await db.getScore(currentContestant.id, currentJudge.id);
-        const slider = document.getElementById('scoreSlider');
-        const scoreValue = document.getElementById('scoreValue');
+        currentScore = await db.getScore(currentContestant.id, currentJudge.id, currentRound.id);
         const submitBtnText = document.getElementById('submitBtnText');
         const submittedInfo = document.getElementById('submittedInfo');
         
         if (currentScore) {
-            if (slider) slider.value = currentScore.score;
-            if (scoreValue) scoreValue.textContent = currentScore.score;
+            scoreInput = currentScore.score.toString();
+            updateScoreDisplay();
             if (submitBtnText) submitBtnText.textContent = '修改评分';
             if (submittedInfo) submittedInfo.classList.remove('hidden');
         } else {
-            if (slider) slider.value = 0;
-            if (scoreValue) scoreValue.textContent = '0';
+            scoreInput = '';
+            updateScoreDisplay();
             if (submitBtnText) submitBtnText.textContent = '提交评分';
             if (submittedInfo) submittedInfo.classList.add('hidden');
         }
+        updateSubmitButton();
     } catch (error) {
         console.error('加载评分失败:', error);
     }
@@ -286,7 +346,10 @@ async function loadScoredList() {
             <div class="flex items-center justify-between p-3 rounded-lg bg-background">
                 <div class="flex items-center gap-3">
                     <span class="badge badge-primary">${score.contestants?.number || '--'}</span>
-                    <span>${score.contestants?.name || '未知选手'}</span>
+                    <div>
+                        <div class="font-medium">${score.contestants?.name || '未知选手'}</div>
+                        <div class="text-muted text-sm">${score.scoring_rounds?.name || '未知轮次'}</div>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-primary font-semibold">${score.score} 分</span>
@@ -299,17 +362,85 @@ async function loadScoredList() {
     }
 }
 
-function handleScoreChange(e) {
-    const value = parseFloat(e.target.value);
+function inputNumber(num) {
+    if (scoreInput.length >= 5) return;
+    
+    if (scoreInput === '0' && num !== '.') {
+        scoreInput = num;
+    } else {
+        scoreInput += num;
+    }
+    
+    validateAndUpdateScore();
+}
+
+function inputDecimal() {
+    if (scoreInput.includes('.')) return;
+    
+    if (scoreInput === '') {
+        scoreInput = '0.';
+    } else {
+        scoreInput += '.';
+    }
+    
+    validateAndUpdateScore();
+}
+
+function clearScore() {
+    scoreInput = '';
+    updateScoreDisplay();
+    updateSubmitButton();
+}
+
+function validateAndUpdateScore() {
+    let score = parseFloat(scoreInput);
+    
+    if (isNaN(score)) {
+        score = 0;
+        scoreInput = '0';
+    }
+    
+    if (score > 100) {
+        score = 100;
+        scoreInput = '100';
+    }
+    
+    if (score < 0) {
+        score = 0;
+        scoreInput = '0';
+    }
+    
+    updateScoreDisplay();
+    updateSubmitButton();
+}
+
+function updateScoreDisplay() {
     const scoreValue = document.getElementById('scoreValue');
-    if (scoreValue) scoreValue.textContent = value.toFixed(1);
+    if (scoreValue) {
+        const displayValue = scoreInput === '' ? '0.0' : scoreInput;
+        scoreValue.textContent = displayValue;
+    }
+}
+
+function updateSubmitButton() {
+    const submitBtn = document.getElementById('submitBtn');
+    const score = parseFloat(scoreInput) || 0;
+    const isValid = score > 0 && score <= 100 && currentContestant && currentRound && !systemState?.is_locked;
+    
+    if (submitBtn) {
+        submitBtn.disabled = !isValid;
+    }
 }
 
 async function handleSubmitScore() {
-    if (!currentContestant || !currentJudge || systemState?.is_locked) return;
+    if (!currentContestant || !currentJudge || !currentRound || systemState?.is_locked) return;
     
-    const slider = document.getElementById('scoreSlider');
-    const score = parseFloat(slider ? slider.value : 0);
+    const score = parseFloat(scoreInput) || 0;
+    if (score <= 0 || score > 100) {
+        showToast('请输入有效的评分 (0-100)', 'error');
+        return;
+    }
+    
     const submitBtn = document.getElementById('submitBtn');
     
     if (submitBtn) {
@@ -318,7 +449,7 @@ async function handleSubmitScore() {
     }
     
     try {
-        await db.submitScore(currentContestant.id, currentJudge.id, score, currentEvent.id);
+        await db.submitScore(currentContestant.id, currentJudge.id, score, currentEvent.id, currentRound.id);
         currentScore = { score };
         
         const submitBtnText = document.getElementById('submitBtnText');
@@ -347,9 +478,20 @@ async function handleSubmitScore() {
 
 function subscribeToChanges() {
     const stateSub = db.subscribeToSystemState(async (payload) => {
+        const prevState = systemState;
         systemState = payload.new;
         updateLockStatus();
         
+        // 检查轮次是否变化
+        if (systemState.current_round_id !== prevState?.current_round_id) {
+            const rounds = await db.getScoringRounds(currentEvent.id);
+            scoringRounds = rounds;
+            currentRound = rounds.find(r => r.id === systemState.current_round_id);
+            updateRoundInfo();
+            await loadCurrentScore();
+        }
+        
+        // 检查选手是否变化
         if (systemState.current_contestant_id !== currentContestant?.id) {
             currentContestant = systemState.current_contestant_id 
                 ? await db.getContestant(systemState.current_contestant_id)
@@ -362,7 +504,7 @@ function subscribeToChanges() {
     
     const scoreSub = db.subscribeToScores(async (payload) => {
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            if (payload.new.judge_id === currentJudge?.id) {
+            if (payload.new.judge_id === currentJudge?.id && payload.new.round_id === currentRound?.id) {
                 currentScore = payload.new;
                 const slider = document.getElementById('scoreSlider');
                 const scoreValue = document.getElementById('scoreValue');
@@ -404,3 +546,6 @@ function showToast(message, type = 'success') {
 }
 
 window.selectEvent = selectEvent;
+window.inputNumber = inputNumber;
+window.inputDecimal = inputDecimal;
+window.clearScore = clearScore;
