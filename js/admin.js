@@ -236,10 +236,31 @@ function updateUI() {
     updateLockButton();
     updateCurrentRoundBadge();
     updateCurrentContestantPreview();
-    updateContestantList();
+    updateContestantListControl();
+    updateContestantListSettings();
     updateGroupList();
     updateJudgeList();
-    updateRoundList();
+    updateRoundListControl();
+    updateRoundListSettings();
+}
+
+function switchTab(tab) {
+    const controlTab = document.getElementById('controlTab');
+    const settingsTab = document.getElementById('settingsTab');
+    const tabControl = document.getElementById('tabControl');
+    const tabSettings = document.getElementById('tabSettings');
+    
+    if (tab === 'control') {
+        controlTab.classList.remove('hidden');
+        settingsTab.classList.add('hidden');
+        tabControl.classList.add('active');
+        tabSettings.classList.remove('active');
+    } else {
+        controlTab.classList.add('hidden');
+        settingsTab.classList.remove('hidden');
+        tabControl.classList.remove('active');
+        tabSettings.classList.add('active');
+    }
 }
 
 function updateDisplayModeRadios() {
@@ -358,8 +379,8 @@ async function handleContestantRoundChange() {
     }
 }
 
-function updateContestantList() {
-    const container = document.getElementById('contestantList');
+function updateContestantListControl() {
+    const container = document.getElementById('contestantListControl');
     
     if (!currentEventId) {
         container.innerHTML = `
@@ -395,12 +416,53 @@ function updateContestantList() {
                     </div>
                     <span class="badge ${isCurrent ? 'badge-success' : 'badge-primary'}">${contestant.number}</span>
                 </div>
+                ${!isCurrent ? `<button class="btn btn-secondary btn-sm" onclick="selectContestant('${contestant.id}')" title="设为当前选手">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+function updateContestantListSettings() {
+    const container = document.getElementById('contestantListSettings');
+    
+    if (!currentEventId) {
+        container.innerHTML = `
+            <div class="empty-state py-4">
+                <p class="text-muted">请先选择活动</p>
+            </div>
+        `;
+        return;
+    }
+    
+    if (contestants.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state py-4">
+                <p class="text-muted">暂无选手</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = contestants.map(contestant => {
+        const avatarHtml = contestant.avatar_url 
+            ? `<img src="${contestant.avatar_url}" alt="${contestant.name}" class="w-10 h-10 rounded-full object-cover">`
+            : `<div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>`;
+        
+        return `
+            <div class="flex items-center justify-between p-3 rounded-lg bg-background">
+                <div class="flex items-center gap-3">
+                    ${avatarHtml}
+                    <div>
+                        <div class="font-medium">${contestant.name}</div>
+                        <div class="text-muted text-sm">${contestant.department || ''}</div>
+                    </div>
+                    <span class="badge badge-primary">${contestant.number}</span>
+                </div>
                 <div class="flex items-center gap-2">
-                    <button class="btn btn-secondary btn-sm" onclick="selectContestant('${contestant.id}')" title="设为当前选手">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </button>
                     <button class="btn btn-secondary btn-sm" onclick="editContestant('${contestant.id}')" title="编辑">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -520,8 +582,8 @@ function updateJudgeList() {
     }).join('');
 }
 
-function updateRoundList() {
-    const container = document.getElementById('roundList');
+function updateRoundListControl() {
+    const container = document.getElementById('roundListControl');
     
     if (!currentEventId) {
         container.innerHTML = `
@@ -543,9 +605,6 @@ function updateRoundList() {
     
     container.innerHTML = scoringRounds.map(round => {
         const isCurrent = round.id === currentRoundId;
-        const methodText = round.calculation_method === 'trimmed_average' 
-            ? '去高低分平均'
-            : '平均分';
         
         return `
             <div class="flex items-center justify-between p-3 rounded-lg bg-background ${isCurrent ? 'ring-2 ring-[var(--primary)]' : ''}">
@@ -554,12 +613,50 @@ function updateRoundList() {
                         <span class="font-medium">${round.name}</span>
                         ${isCurrent ? '<span class="badge badge-success">当前</span>' : ''}
                     </div>
+                </div>
+                ${!isCurrent ? `<button class="btn btn-secondary btn-sm" onclick="setActiveRound('${round.id}')" title="设为当前">设为当前</button>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+function updateRoundListSettings() {
+    const container = document.getElementById('roundListSettings');
+    
+    if (!currentEventId) {
+        container.innerHTML = `
+            <div class="empty-state py-4">
+                <p class="text-muted">请先选择活动</p>
+            </div>
+        `;
+        return;
+    }
+    
+    if (scoringRounds.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state py-4">
+                <p class="text-muted">暂无评分轮次</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = scoringRounds.map(round => {
+        const methodText = round.calculation_method === 'trimmed_average' 
+            ? '去高低分平均'
+            : '平均分';
+        
+        return `
+            <div class="flex items-center justify-between p-3 rounded-lg bg-background">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="font-medium">${round.name}</span>
+                    </div>
                     <div class="text-muted text-sm mt-1">
                         权重: ${round.weight} | ${methodText}
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    ${!isCurrent ? `<button class="btn btn-secondary btn-sm" onclick="setActiveRound('${round.id}')" title="设为当前">设为当前</button>` : ''}
                     <button class="btn btn-secondary btn-sm" onclick="editRound('${round.id}')" title="编辑">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1271,13 +1368,19 @@ function renderGroupTrimSettings() {
     
     container.innerHTML = judgeGroups.map(group => {
         const existingSetting = roundGroupSettings.find(s => s.group_id === group.id);
+        const weight = existingSetting?.weight ?? 1.00;
         const trimHigh = existingSetting?.trim_high_count ?? 1;
         const trimLow = existingSetting?.trim_low_count ?? 1;
         
         return `
             <div class="p-3 rounded-lg bg-background border border-[var(--border)]">
                 <div class="font-medium mb-2">${group.name}</div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="form-group mb-0">
+                        <label class="form-label text-sm">权重</label>
+                        <input type="number" class="form-input" min="0" max="10" step="0.01" value="${weight}" 
+                               data-group-id="${group.id}" data-field="weight">
+                    </div>
                     <div class="form-group mb-0">
                         <label class="form-label text-sm">去除最高分</label>
                         <input type="number" class="form-input" min="0" max="10" value="${trimHigh}" 
@@ -1479,8 +1582,9 @@ window.activateEvent = activateEvent;
 window.toggleEventStatus = toggleEventStatus;
 window.deleteEvent = deleteEvent;
 window.openCopyEventModal = openCopyEventModal;
-window.clearAvatar = clearAvatar;
+window.switchTab = switchTab;
 window.selectTheme = selectTheme;
+window.switchTab = switchTab;
 
 // 背景主题设置
 const AVAILABLE_THEMES = 4;

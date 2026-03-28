@@ -4,13 +4,13 @@
     --primary: #3B82F6;
     --primary-hover: #2563EB;
     --primary-light: rgba(59, 130, 246, 0.15);
-    --secondary: #8B5CF6;
+    --secondary: #1062EC;
     --secondary-light: rgba(139, 92, 246, 0.15);
     --cta: #F59E0B;
     --cta-hover: #D97706;
     --cta-light: rgba(245, 158, 11, 0.15);
     --success: #10B981;
-    --success-light: rgba(16, 185, 129, 0.15);
+    --success-light: rgba(16, 185,   129, 0.15);
     --warning: #F59E0B;
     --warning-light: rgba(245, 158, 11, 0.15);
     --error: #EF4444;
@@ -177,6 +177,60 @@ h4 { font-size: clamp(1rem, 2.5vw, 1.25rem); }
     .navbar-brand svg {
         width: 32px;
         height: 32px;
+    }
+}
+
+.navbar-tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 0.25rem;
+    margin: -0.75rem 0;
+}
+
+.nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.nav-tab:hover {
+    color: var(--text-secondary);
+    background: var(--bg-glass-hover);
+}
+
+.nav-tab.active {
+    color: #ffffff;;
+    background: var(--primary-light);
+}
+
+.nav-tab svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+    .nav-tab {
+        padding: 0.75rem 1.25rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .navbar-tabs {
+        margin: -1rem 0;
+    }
+
+    .nav-tab {
+        padding: 1rem 1.5rem;
     }
 }
 
@@ -1403,6 +1457,26 @@ footer a:hover {
 ::selection {
     background: var(--primary-light);
     color: var(--text-primary);
+}
+
+.tab-btn {
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    cursor: pointer;
+}
+
+.tab-btn:hover {
+    color: var(--text-secondary);
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.tab-content {
+    animation: fadeIn 0.3s ease;
 }
 
 .sr-only {

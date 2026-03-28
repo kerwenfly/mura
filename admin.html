@@ -16,8 +16,25 @@
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                 </svg>
-                <span>控制面板</span>
+                <span class="hidden sm:inline">控制面板</span>
             </a>
+            <div class="navbar-tabs" id="adminTabs">
+                <button id="tabControl" class="nav-tab active" onclick="switchTab('control')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <span class="hidden sm:inline">控制</span>
+                </button>
+                <button id="tabSettings" class="nav-tab" onclick="switchTab('settings')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <span class="hidden sm:inline">设置</span>
+                </button>
+            </div>
             <div class="flex items-center gap-2 md:gap-3">
                 <a href="display.html" target="_blank" class="btn btn-secondary btn-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -92,190 +109,222 @@
                 </div>
             </div>
 
-            <div class="grid lg:grid-cols-3 gap-4 md:gap-6">
-                <div class="lg:col-span-1 space-y-4 md:space-y-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">显示模式</h3>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="flex items-center gap-3 p-3 rounded-lg bg-background cursor-pointer hover:bg-glass-hover transition-colors">
-                                <input type="radio" name="displayMode" value="waiting" class="w-5 h-5 accent-primary">
-                                <div class="flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                    </svg>
-                                    <span>等待状态</span>
-                                </div>
-                            </label>
-                            <label class="flex items-center gap-3 p-3 rounded-lg bg-background cursor-pointer hover:bg-glass-hover transition-colors">
-                                <input type="radio" name="displayMode" value="scoring" class="w-5 h-5 accent-primary">
-                                <div class="flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
-                                        <path d="M12 20V10"></path>
-                                        <path d="M18 20V4"></path>
-                                        <path d="M6 20v-4"></path>
-                                    </svg>
-                                    <span>评分中</span>
-                                </div>
-                            </label>
-                            <label class="flex items-center gap-3 p-3 rounded-lg bg-background cursor-pointer hover:bg-glass-hover transition-colors">
-                                <input type="radio" name="displayMode" value="result" class="w-5 h-5 accent-primary">
-                                <div class="flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success">
-                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                    </svg>
-                                    <span>显示结果</span>
-                                </div>
-                            </label>
-                            <label class="flex items-center gap-3 p-3 rounded-lg bg-background cursor-pointer hover:bg-glass-hover transition-colors">
-                                <input type="radio" name="displayMode" value="final" class="w-5 h-5 accent-primary">
-                                <div class="flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cta">
-                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                                    </svg>
-                                    <span>最终排名</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header flex justify-between items-center">
-                            <h3 class="card-title">评分轮次</h3>
-                            <button id="addRoundBtn" class="btn btn-primary btn-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                <span class="hidden sm:inline">添加</span>
-                            </button>
-                        </div>
-                        <div id="roundList" class="space-y-2 max-h-60 md:max-h-80 overflow-y-auto">
-                            <div class="empty-state py-4">
-                                <p class="text-muted">请先选择活动</p>
+            <div id="controlTab" class="tab-content">
+                <div class="grid lg:grid-cols-2 gap-4 md:gap-6">
+                    <div class="space-y-4 md:space-y-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">显示模式</h3>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-3 rounded-lg bg-background cursor-pointer hover:bg-glass-hover transition-colors">
+                                    <input type="radio" name="displayMode" value="waiting" class="w-5 h-5 accent-primary">
+                                    <div class="flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                        <span>等待状态</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 rounded-lg bg-background cursor-pointer hover:bg-glass-hover transition-colors">
+                                    <input type="radio" name="displayMode" value="scoring" class="w-5 h-5 accent-primary">
+                                    <div class="flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                                            <path d="M12 20V10"></path>
+                                            <path d="M18 20V4"></path>
+                                            <path d="M6 20v-4"></path>
+                                        </svg>
+                                        <span>评分中</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 rounded-lg bg-background cursor-pointer hover:bg-glass-hover transition-colors">
+                                    <input type="radio" name="displayMode" value="result" class="w-5 h-5 accent-primary">
+                                    <div class="flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                        </svg>
+                                        <span>显示结果</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 rounded-lg bg-background cursor-pointer hover:bg-glass-hover transition-colors">
+                                    <input type="radio" name="displayMode" value="final" class="w-5 h-5 accent-primary">
+                                    <div class="flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cta">
+                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                        </svg>
+                                        <span>最终排名</span>
+                                    </div>
+                                </label>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">评分控制</h3>
-                        </div>
-                        <div class="space-y-3">
-                            <button id="lockBtn" class="btn btn-secondary btn-block">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                </svg>
-                                <span id="lockBtnText">锁定评分</span>
-                            </button>
-                            <button id="resetScoresBtn" class="btn btn-danger btn-block">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="1 4 1 10 7 10"></polyline>
-                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                                </svg>
-                                重置当前轮评分
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">大屏背景主题</h3>
-                        </div>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="form-label">选择主题</label>
-                                <div id="themePreviewGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">评分控制</h3>
                             </div>
-                            <div class="flex items-center justify-between p-3 rounded-lg bg-background">
-                                <div>
-                                    <div class="font-medium">当前主题</div>
-                                    <div id="currentThemeName" class="text-sm text-muted">主题 1</div>
-                                </div>
-                                <button id="applyThemeBtn" class="btn btn-primary btn-sm">
-                                    应用主题
+                            <div class="space-y-3">
+                                <button id="lockBtn" class="btn btn-secondary btn-block">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    <span id="lockBtnText">锁定评分</span>
                                 </button>
+                                <button id="resetScoresBtn" class="btn btn-danger btn-block">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="1 4 1 10 7 10"></polyline>
+                                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                                    </svg>
+                                    重置当前轮评分
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">评分轮次</h3>
+                            </div>
+                            <div id="roundListControl" class="space-y-2 max-h-60 md:max-h-80 overflow-y-auto">
+                                <div class="empty-state py-4">
+                                    <p class="text-muted">请先选择活动</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 md:space-y-6">
+                        <div class="card">
+                            <div class="card-header flex justify-between items-center">
+                                <h3 class="card-title">当前选手</h3>
+                                <div class="flex items-center gap-2">
+                                    <span id="currentRoundBadge" class="badge badge-primary hidden"></span>
+                                    <span id="currentStatus" class="badge badge-warning">未选择</span>
+                                </div>
+                            </div>
+                            <div id="currentContestantPreview" class="text-center py-6">
+                                <div class="empty-state">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    <p>请从选手列表中选择当前选手</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">选手列表</h3>
+                            </div>
+                            <div id="contestantListControl" class="space-y-2 max-h-80 md:max-h-96 overflow-y-auto">
+                                <div class="empty-state py-4">
+                                    <p class="text-muted">暂无选手</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="lg:col-span-2 space-y-4 md:space-y-6">
-                    <div class="card">
-                        <div class="card-header flex justify-between items-center">
-                            <h3 class="card-title">当前选手</h3>
-                            <div class="flex items-center gap-2">
-                                <span id="currentRoundBadge" class="badge badge-primary hidden"></span>
-                                <span id="currentStatus" class="badge badge-warning">未选择</span>
+            <div id="settingsTab" class="tab-content hidden">
+                <div class="grid lg:grid-cols-2 gap-4 md:gap-6">
+                    <div class="space-y-4 md:space-y-6">
+                        <div class="card">
+                            <div class="card-header flex justify-between items-center">
+                                <h3 class="card-title">评委分组</h3>
+                                <button id="addGroupBtn" class="btn btn-primary btn-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    <span class="hidden sm:inline">添加分组</span>
+                                </button>
+                            </div>
+                            <div id="groupList" class="space-y-2 max-h-48 md:max-h-60 overflow-y-auto">
+                                <div class="empty-state py-4">
+                                    <p class="text-muted">暂无分组</p>
+                                </div>
                             </div>
                         </div>
-                        <div id="currentContestantPreview" class="text-center py-6">
-                            <div class="empty-state">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                </svg>
-                                <p>请从选手列表中选择当前选手</p>
+
+                        <div class="card">
+                            <div class="card-header flex justify-between items-center">
+                                <h3 class="card-title">评委列表</h3>
+                                <button id="addJudgeBtn" class="btn btn-primary btn-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    <span class="hidden sm:inline">添加评委</span>
+                                </button>
+                            </div>
+                            <div id="judgeList" class="space-y-2 max-h-48 md:max-h-60 overflow-y-auto">
+                                <div class="empty-state py-4">
+                                    <p class="text-muted">暂无评委</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header flex justify-between items-center">
+                                <h3 class="card-title">评分轮次</h3>
+                                <button id="addRoundBtn" class="btn btn-primary btn-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    <span class="hidden sm:inline">添加</span>
+                                </button>
+                            </div>
+                            <div id="roundListSettings" class="space-y-2 max-h-60 md:max-h-80 overflow-y-auto">
+                                <div class="empty-state py-4">
+                                    <p class="text-muted">请先选择活动</p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-header flex justify-between items-center">
-                            <h3 class="card-title">选手列表</h3>
-                            <button id="addContestantBtn" class="btn btn-primary btn-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                <span class="hidden sm:inline">添加选手</span>
-                            </button>
-                        </div>
-                        <div id="contestantList" class="space-y-2 max-h-60 md:max-h-80 overflow-y-auto">
-                            <div class="empty-state py-4">
-                                <p class="text-muted">暂无选手</p>
+                    <div class="space-y-4 md:space-y-6">
+                        <div class="card">
+                            <div class="card-header flex justify-between items-center">
+                                <h3 class="card-title">选手列表</h3>
+                                <button id="addContestantBtn" class="btn btn-primary btn-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    <span class="hidden sm:inline">添加选手</span>
+                                </button>
+                            </div>
+                            <div id="contestantListSettings" class="space-y-2 max-h-80 md:max-h-96 overflow-y-auto">
+                                <div class="empty-state py-4">
+                                    <p class="text-muted">暂无选手</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="card">
-                        <div class="card-header flex justify-between items-center">
-                            <h3 class="card-title">评委分组</h3>
-                            <button id="addGroupBtn" class="btn btn-primary btn-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                <span class="hidden sm:inline">添加分组</span>
-                            </button>
-                        </div>
-                        <div id="groupList" class="space-y-2 max-h-48 md:max-h-60 overflow-y-auto">
-                            <div class="empty-state py-4">
-                                <p class="text-muted">暂无分组</p>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">大屏背景主题</h3>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header flex justify-between items-center">
-                            <h3 class="card-title">评委列表</h3>
-                            <button id="addJudgeBtn" class="btn btn-primary btn-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                <span class="hidden sm:inline">添加评委</span>
-                            </button>
-                        </div>
-                        <div id="judgeList" class="space-y-2 max-h-48 md:max-h-60 overflow-y-auto">
-                            <div class="empty-state py-4">
-                                <p class="text-muted">暂无评委</p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="form-label">选择主题</label>
+                                    <div id="themePreviewGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between p-3 rounded-lg bg-background">
+                                    <div>
+                                        <div class="font-medium">当前主题</div>
+                                        <div id="currentThemeName" class="text-sm text-muted">主题 1</div>
+                                    </div>
+                                    <button id="applyThemeBtn" class="btn btn-primary btn-sm">
+                                        应用主题
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -425,7 +474,7 @@
     </div>
 
     <div class="modal-overlay" id="roundModal">
-        <div class="modal">
+        <div class="modal" style="max-width: 800px;">
             <div class="modal-header">
                 <h3 id="roundModalTitle">添加评分轮次</h3>
                 <button class="btn btn-secondary btn-sm" onclick="closeRoundModal()">
@@ -438,26 +487,30 @@
             <form id="roundForm">
                 <div class="modal-body">
                     <input type="hidden" id="roundId">
-                    <div class="form-group">
-                        <label class="form-label" for="roundNameInput">轮次名称 *</label>
-                        <input type="text" id="roundNameInput" class="form-input" placeholder="请输入轮次名称" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="roundWeightInput">权重值 *</label>
-                        <input type="number" id="roundWeightInput" class="form-input" placeholder="请输入权重值 (0-10)" min="0" max="10" step="0.01" value="1.00" required>
-                        <p class="text-sm text-muted mt-1">权重值用于计算最终得分，建议范围 0.1-2.0</p>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="roundMethodSelect">计算方法 *</label>
-                        <select id="roundMethodSelect" class="form-input" onchange="handleMethodChange()">
-                            <option value="average">平均分 - 所有评委评分的平均值</option>
-                            <option value="trimmed_average">去高低分平均 - 去除指定数量的最高分和最低分后的平均值</option>
-                        </select>
-                    </div>
-                    <div id="trimSettings" class="hidden">
-                        <h4 class="font-medium mb-3">各分组去高低分设置</h4>
-                        <p class="text-sm text-muted mb-3">当计算方法为"去高低分平均"时，可以为每个分组单独设置去除的最高分和最低分数量</p>
-                        <div id="groupTrimSettings" class="space-y-3 max-h-60 overflow-y-auto">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div class="form-group">
+                                <label class="form-label" for="roundNameInput">轮次名称 *</label>
+                                <input type="text" id="roundNameInput" class="form-input" placeholder="请输入轮次名称" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="roundWeightInput">权重值 *</label>
+                                <input type="number" id="roundWeightInput" class="form-input" placeholder="请输入权重值 (0-10)" min="0" max="10" step="0.01" value="1.00" required>
+                                <p class="text-sm text-muted mt-1">权重值用于计算最终得分</p>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="roundMethodSelect">计算方法 *</label>
+                                <select id="roundMethodSelect" class="form-input" onchange="handleMethodChange()">
+                                    <option value="average">平均分 - 所有评委评分的平均值</option>
+                                    <option value="trimmed_average">去高低分平均 - 去除指定数量的最高分和最低分后的平均值</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="trimSettings" class="hidden">
+                            <h4 class="font-medium mb-3">各分组设置</h4>
+                            <p class="text-sm text-muted mb-3">设置每个分组的权重和去高低分数量</p>
+                            <div id="groupTrimSettings" class="space-y-3 max-h-72 overflow-y-auto pr-2">
+                            </div>
                         </div>
                     </div>
                 </div>

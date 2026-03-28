@@ -82,11 +82,12 @@ CREATE TABLE IF NOT EXISTS scoring_rounds (
     UNIQUE(event_id, name)
 );
 
--- 轮次分组设置表（每个分组在每个轮次的去高低分设置）
+-- 轮次分组设置表（每个分组在每个轮次的去高低分设置和权重）
 CREATE TABLE IF NOT EXISTS round_group_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     round_id UUID REFERENCES scoring_rounds(id) ON DELETE CASCADE,
     group_id UUID REFERENCES judge_groups(id) ON DELETE CASCADE,
+    weight DECIMAL(5,2) DEFAULT 1.00 CHECK (weight >= 0 AND weight <= 10),
     trim_high_count INTEGER DEFAULT 1 CHECK (trim_high_count >= 0),
     trim_low_count INTEGER DEFAULT 1 CHECK (trim_low_count >= 0),
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -330,10 +331,11 @@ CREATE OR REPLACE FUNCTION calculate_round_score(p_contestant_id UUID, p_round_i
 RETURNS NUMERIC AS $$
 DECLARE
     v_method TEXT;
-    v_total_score NUMERIC := 0;
-    v_total_count INTEGER := 0;
+    v_total_weighted_score NUMERIC := 0;
+    v_total_weight NUMERIC := 0;
     v_group_record RECORD;
     v_group_score NUMERIC;
+    v_group_weight NUMERIC;
     v_trim_high INTEGER;
     v_trim_low INTEGER;
     v_score_count INTEGER;
@@ -341,23 +343,18 @@ BEGIN
     SELECT calculation_method INTO v_method
     FROM scoring_rounds WHERE id = p_round_id;
     
-    IF v_method = 'average' THEN
-        SELECT AVG(score) INTO v_total_score
-        FROM scores WHERE contestant_id = p_contestant_id AND round_id = p_round_id;
-        RETURN COALESCE(v_total_score, 0);
-    END IF;
-    
-    -- 去高低分平均：按分组分别计算
+    -- 按分组分别计算，使用分组权重
     FOR v_group_record IN 
-        SELECT jg.id AS group_id, rgs.trim_high_count, rgs.trim_low_count
+        SELECT jg.id AS group_id, COALESCE(rgs.weight, 1.00) AS weight, rgs.trim_high_count, rgs.trim_low_count
         FROM judge_groups jg
         LEFT JOIN round_group_settings rgs ON rgs.group_id = jg.id AND rgs.round_id = p_round_id
         WHERE jg.event_id = (SELECT event_id FROM scoring_rounds WHERE id = p_round_id)
     LOOP
+        v_group_weight := v_group_record.weight;
         v_trim_high := COALESCE(v_group_record.trim_high_count, 1);
         v_trim_low := COALESCE(v_group_record.trim_low_count, 1);
         
-        SELECT COUNT(*), COALESCE(AVG(score), 0) INTO v_score_count, v_group_score
+        SELECT COUNT(*) INTO v_score_count
         FROM scores s
         JOIN judges j ON s.judge_id = j.id
         WHERE s.contestant_id = p_contestant_id 
@@ -365,33 +362,47 @@ BEGIN
         AND j.group_id = v_group_record.group_id;
         
         IF v_score_count > 0 THEN
-            IF v_score_count <= (v_trim_high + v_trim_low + 1) THEN
-                v_total_score := v_total_score + v_group_score * v_score_count;
-                v_total_count := v_total_count + v_score_count;
-            ELSE
+            IF v_method = 'average' THEN
                 SELECT AVG(score) INTO v_group_score
-                FROM (
-                    SELECT s.score
+                FROM scores s
+                JOIN judges j ON s.judge_id = j.id
+                WHERE s.contestant_id = p_contestant_id 
+                AND s.round_id = p_round_id 
+                AND j.group_id = v_group_record.group_id;
+            ELSE
+                IF v_score_count <= (v_trim_high + v_trim_low + 1) THEN
+                    SELECT AVG(score) INTO v_group_score
                     FROM scores s
                     JOIN judges j ON s.judge_id = j.id
                     WHERE s.contestant_id = p_contestant_id 
                     AND s.round_id = p_round_id 
-                    AND j.group_id = v_group_record.group_id
-                    ORDER BY s.score
-                    OFFSET v_trim_low
-                    LIMIT v_score_count - v_trim_high - v_trim_low
-                ) trimmed;
-                v_total_score := v_total_score + v_group_score * (v_score_count - v_trim_high - v_trim_low);
-                v_total_count := v_total_count + (v_score_count - v_trim_high - v_trim_low);
+                    AND j.group_id = v_group_record.group_id;
+                ELSE
+                    SELECT AVG(score) INTO v_group_score
+                    FROM (
+                        SELECT s.score
+                        FROM scores s
+                        JOIN judges j ON s.judge_id = j.id
+                        WHERE s.contestant_id = p_contestant_id 
+                        AND s.round_id = p_round_id 
+                        AND j.group_id = v_group_record.group_id
+                        ORDER BY s.score
+                        OFFSET v_trim_low
+                        LIMIT v_score_count - v_trim_high - v_trim_low
+                    ) trimmed;
+                END IF;
             END IF;
+            
+            v_total_weighted_score := v_total_weighted_score + (v_group_score * v_group_weight);
+            v_total_weight := v_total_weight + v_group_weight;
         END IF;
     END LOOP;
     
-    IF v_total_count = 0 THEN
+    IF v_total_weight = 0 THEN
         RETURN 0;
     END IF;
     
-    RETURN v_total_score / v_total_count;
+    RETURN v_total_weighted_score / v_total_weight;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
