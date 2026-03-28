@@ -3,162 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多人在线实时评分系统</title>
-    <script src="lib/tailwind.min.js"></script>
+    <title>ScoreLive - 实时评分系统</title>
+    <script src="lib/supabase.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.03);
+            pointer-events: none;
+        }
+    </style>
 </head>
-<body class="min-h-screen">
-    <nav class="navbar">
-        <div class="navbar-content">
-            <div class="navbar-brand">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-                <span>实时在线评分</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <a href="admin.html" class="btn btn-secondary btn-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="3" y1="9" x2="21" y2="9"></line>
-                        <line x1="9" y1="21" x2="9" y2="9"></line>
+<body>
+
+
+    <!-- 导航栏 -->
+    <nav class="relative z-10 bg-slate-900/50 backdrop-blur-sm border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                     </svg>
-                    <span class="hidden md:inline">控制面板</span>
-                </a>
+                </div>
+                <span class="font-bold text-white">ScoreLive</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="super.html" class="text-slate-400 hover:text-white text-sm transition-colors">SUPER</a>
             </div>
         </div>
     </nav>
 
-    <main>
-        <section class="py-8 md:py-16 lg:py-24">
-            <div class="container">
-                <div class="text-center max-w-3xl mx-auto">
-                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-light border border-primary/30 mb-6 fade-in">
-                        <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-                        <span class="text-sm text-primary font-medium">实时在线评分</span>
+    <!-- Hero 区域 -->
+    <section class="relative z-10 text-center py-20 px-4">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-5xl md:text-7xl font-black gradient-text mb-6 leading-tight">
+                实时评分系统
+            </h1>
+            <p class="text-xl text-slate-400 mb-8 max-w-2xl mx-auto">
+                专业的多人在线实时评分解决方案，支持多轮评分、评委分组、实时数据同步
+            </p>
+
+        </div>
+    </section>
+
+    <!-- 功能卡片 -->
+    <section class="relative z-10 py-16 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 管理员 -->
+                <a href="admin.html" class="card bg-slate-900/50 border-slate-800 hover:border-indigo-500/50 card-hover transition-all">
+                    <div class="card-header">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-700 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">管理员后台</h3>
+                            <p class="text-xs text-slate-500">Admin Dashboard</p>
+                        </div>
                     </div>
-                    <h1 class="mb-6 slide-up">
-                        实时协作<span class="text-primary">评分</span>系统
-                    </h1>
-                    <p class="text-xl text-muted mb-8 fade-in max-w-2xl mx-auto">
-                        支持多位评委同时在线打分，实时同步评分结果，大屏展示一目了然。专业的评分解决方案。
+                    <p class="text-sm text-slate-400">
+                        管理活动、选手、评委，控制评分流程，查看实时数据
                     </p>
-                    <div class="flex flex-col sm:flex-row gap-4 justify-center fade-in">
-                        <a href="judge.html" class="btn btn-cta btn-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
+                </a>
+
+                <!-- 评委 -->
+                <a href="judge.html" class="card bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 card-hover transition-all">
+                    <div class="card-header">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
                             </svg>
-                            评委入口
-                        </a>
-                        <a href="display.html" class="btn btn-primary btn-lg" target="_blank">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                                <line x1="8" y1="21" x2="16" y2="21"></line>
-                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">评委评分</h3>
+                            <p class="text-xs text-slate-500">Judge Portal</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-400">
+                        评委登录后进行评分，支持多轮评分和实时提交
+                    </p>
+                </a>
+
+                <!-- 展示大屏 -->
+                <a href="display.html" class="card bg-slate-900/50 border-slate-800 hover:border-amber-500/50 card-hover transition-all">
+                    <div class="card-header">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                             </svg>
-                            大屏显示
-                        </a>
-                        <a href="admin.html" class="btn btn-secondary btn-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                            </svg>
-                            控制面板
-                        </a>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">展示大屏</h3>
+                            <p class="text-xs text-slate-500">Display Screen</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-400">
+                        实时展示评分进度、结果和最终排名，支持多种主题
+                    </p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 特性列表 -->
+    <section class="relative z-10 py-16 px-4 bg-slate-900/30">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold text-white text-center mb-12">核心特性</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-white mb-1">实时同步</h3>
+                        <p class="text-sm text-slate-400">基于 Supabase Realtime，评分数据毫秒级同步到所有客户端</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-600/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-white mb-1">多轮评分</h3>
+                        <p class="text-sm text-slate-400">支持多轮评分，每轮可独立设置权重和计算方式</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-amber-600/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-white mb-1">评委分组</h3>
+                        <p class="text-sm text-slate-400">支持评委分组，每组可设置不同的权重和去高低分规则</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-white mb-1">多种主题</h3>
+                        <p class="text-sm text-slate-400">展示大屏支持多种背景主题，适应不同场景需求</p>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section class="py-8 md:py-16">
-            <div class="container">
-                <h2 class="section-title">核心功能</h2>
-                <div class="grid md:grid-cols-3 gap-4 md:gap-6">
-                    <div class="card card-hover">
-                        <div class="feature-icon bg-primary-light">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                            </svg>
-                        </div>
-                        <h3 class="text-lg md:text-xl mb-3">多人实时评分</h3>
-                        <p class="text-muted text-sm md:text-base">
-                            支持多位评委同时在线打分，评分数据实时同步，无需刷新页面
-                        </p>
-                    </div>
-                    
-                    <div class="card card-hover">
-                        <div class="feature-icon bg-secondary-light">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
-                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                                <line x1="8" y1="21" x2="16" y2="21"></line>
-                                <line x1="12" y1="17" x2="12" y2="21"></line>
-                            </svg>
-                        </div>
-                        <h3 class="text-lg md:text-xl mb-3">大屏实时展示</h3>
-                        <p class="text-muted text-sm md:text-base">
-                            大屏页面实时显示选手信息、评分进度和最终得分，支持多种展示模式
-                        </p>
-                    </div>
-                    
-                    <div class="card card-hover">
-                        <div class="feature-icon bg-cta-light">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cta">
-                                <path d="M12 20V10"></path>
-                                <path d="M18 20V4"></path>
-                                <path d="M6 20v-4"></path>
-                            </svg>
-                        </div>
-                        <h3 class="text-lg md:text-xl mb-3">数据可视化</h3>
-                        <p class="text-muted text-sm md:text-base">
-                            实时数据可视化展示，评分进度、排名变化一目了然
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="py-8 md:py-16">
-            <div class="container">
-                <h2 class="section-title">使用流程</h2>
-                <div class="max-w-4xl mx-auto">
-                    <div class="grid md:grid-cols-3 gap-6 md:gap-8">
-                        <div class="text-center">
-                            <div class="w-14 h-14 rounded-xl bg-primary-light border border-primary/30 flex items-center justify-center mx-auto mb-4">
-                                <span class="text-xl font-bold text-primary">1</span>
-                            </div>
-                            <h4 class="text-lg mb-2 font-medium">管理员设置</h4>
-                            <p class="text-muted text-sm">登录控制面板，添加选手和评委信息，配置评分规则</p>
-                        </div>
-                        <div class="text-center">
-                            <div class="w-14 h-14 rounded-xl bg-secondary-light border border-secondary/30 flex items-center justify-center mx-auto mb-4">
-                                <span class="text-xl font-bold text-secondary">2</span>
-                            </div>
-                            <h4 class="text-lg mb-2 font-medium">评委打分</h4>
-                            <p class="text-muted text-sm">评委登录打分页面，为当前选手进行评分</p>
-                        </div>
-                        <div class="text-center">
-                            <div class="w-14 h-14 rounded-xl bg-cta-light border border-cta/30 flex items-center justify-center mx-auto mb-4">
-                                <span class="text-xl font-bold text-cta">3</span>
-                            </div>
-                            <h4 class="text-lg mb-2 font-medium">实时展示</h4>
-                            <p class="text-muted text-sm">大屏实时显示评分结果和最终排名</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-
-    </main>
-
-    <footer>
-        <div class="container">
-            <p>多人在线实时评分系统 - PowerBy Kerwenfly</p>
+    <!-- 页脚 -->
+    <footer class="relative z-10 border-t border-slate-800 py-8 px-4">
+        <div class="max-w-6xl mx-auto text-center">
+            <p class="text-slate-500 text-sm">
+                Powered By KerwenFly
+            </p>
         </div>
     </footer>
+
+    <script src="js/supabase-client.js"></script>
+    <script>
+        // 创建背景粒子
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const particleCount = 6;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = 150 + i * 80;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${10 + i * 15}%`;
+                particle.style.top = `${5 + i * 12}%`;
+                particle.style.animation = `float ${4 + i}s ease-in-out infinite`;
+                particle.style.animationDelay = `${i * 0.8}s`;
+                container.appendChild(particle);
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+        });
+    </script>
 </body>
 </html>

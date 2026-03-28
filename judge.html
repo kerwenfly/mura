@@ -3,190 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>评委打分 - 多人在线实时评分系统</title>
-    <script src="lib/tailwind.min.js"></script>
+    <title>评委评分 - ScoreLive</title>
     <script src="lib/supabase.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="min-h-screen">
-    <nav class="navbar">
-        <div class="navbar-content">
-            <a href="index.html" class="navbar-brand">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-                <div class="flex items-center gap-2">
-                    <span id="navContestantName" class="text-sm md:text-base"></span>
-                    <span id="navRoundName" class="text-muted text-xs md:text-sm"></span>
-                </div>
-            </a>
-            <div id="userInfo" class="flex items-center gap-2 md:gap-3">
-                <span id="judgeName" class="text-muted text-xs md:text-sm"></span>
-                <button id="logoutBtn" class="btn btn-secondary btn-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                        <polyline points="16 17 21 12 16 7"></polyline>
-                        <line x1="21" y1="12" x2="9" y2="12"></line>
+<body class="min-h-screen bg-slate-950">
+    <!-- Toast 容器 -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- 活动选择区域 -->
+    <div id="eventSelectSection" class="min-h-screen flex flex-col">
+        <!-- 导航栏 -->
+        <nav class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
                     </svg>
-                    <span class="hidden md:inline">退出</span>
-                </button>
+                </div>
+                <span class="font-bold text-white">ScoreLive</span>
+                <span class="text-slate-500 hidden sm:block">•</span>
+                <span class="text-slate-400 text-sm hidden sm:block">评委入口</span>
+            </div>
+            <a href="index.html" class="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span class="hidden sm:block">首页</span>
+            </a>
+        </nav>
+
+        <!-- 活动列表 -->
+        <div class="flex-1 p-4 md:p-8 max-w-2xl mx-auto w-full">
+            <h1 class="text-2xl font-bold text-white mb-1 mt-4">选择活动</h1>
+            <p class="text-slate-400 text-sm mb-6">请选择您要参与评分的活动</p>
+            <div id="eventList" class="space-y-3">
+                <!-- 活动列表将通过JS动态生成 -->
             </div>
         </div>
-    </nav>
+    </div>
 
-    <main class="container py-4 md:py-6">
-        <div id="eventSelectSection" class="max-w-md mx-auto">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title text-center">选择活动</h2>
+    <!-- 登录区域 -->
+    <div id="loginSection" class="hidden min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-sm">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+                <div class="mb-5">
+                    <div class="text-xs text-slate-500 mb-1">登录活动</div>
+                    <div class="font-semibold text-white" id="currentEventName">活动名称</div>
                 </div>
-                <div id="eventList" class="space-y-2">
-                    <div class="empty-state py-4">
-                        <p class="text-muted">加载中...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div id="loginSection" class="max-w-md mx-auto hidden">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title text-center">评委登录</h2>
-                </div>
-                <div class="text-center mb-4">
-                    <span class="text-muted text-sm">当前活动：</span>
-                    <span id="currentEventName" class="font-medium"></span>
-                </div>
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label class="form-label" for="username">用户名</label>
-                        <input type="text" id="username" class="form-input" placeholder="请输入用户名" required>
+                <form id="loginForm" class="space-y-3">
+                    <div>
+                        <label class="form-label">用户名</label>
+                        <input type="text" id="username" class="form-input" placeholder="judge1" required>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label" for="password">密码</label>
-                        <input type="password" id="password" class="form-input" placeholder="请输入密码" required>
+                    <div>
+                        <label class="form-label">密码</label>
+                        <div class="relative">
+                            <input type="password" id="password" class="form-input pr-9" placeholder="••••••••" required>
+                            <button type="button" id="togglePasswordBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                                <svg class="w-3.5 h-3.5" id="eyeIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block btn-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                            <polyline points="10 17 15 12 10 7"></polyline>
-                            <line x1="15" y1="12" x2="3" y2="12"></line>
-                        </svg>
+                    <button type="submit" id="loginBtn" class="btn btn-primary w-full">
                         登录
                     </button>
                 </form>
-                <button id="backToEventBtn" class="btn btn-secondary btn-block mt-3">
-                    返回选择活动
+
+                <div class="mt-4 p-2.5 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                    <p class="text-xs text-slate-500">演示账户: judge1 / judge123, judge2 / judge123</p>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <button id="backToEventBtn" class="text-sm text-slate-400 hover:text-white transition-colors">
+                        ← 返回选择活动
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 评分区域 -->
+    <div id="scoringSection" class="hidden min-h-screen flex flex-col">
+        <!-- 导航栏 -->
+        <nav class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                    </svg>
+                </div>
+                <span class="font-bold text-white">ScoreLive</span>
+                <span class="text-slate-500 hidden sm:block">•</span>
+                <span class="text-slate-400 text-sm hidden sm:block" id="navEventName">活动名称</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-slate-400 hidden sm:block" id="judgeName">评委</span>
+                <button id="logoutBtn" class="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                    <span class="hidden sm:block">退出</span>
                 </button>
             </div>
-        </div>
+        </nav>
 
-        <div id="scoringSection" class="hidden">
-            <div id="lockedAlert" class="hidden mb-4 p-4 rounded-lg bg-warning-light border border-warning/30">
-                <div class="flex items-center gap-2 text-warning">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        <!-- 选手信息 -->
+        <div class="bg-slate-900 border-b border-slate-800 px-4 py-4">
+            <div id="contestantInfo" class="max-w-lg mx-auto">
+                <div id="noContestantArea" class="flex items-center gap-3 text-slate-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
                     </svg>
-                    <span>评分已锁定，无法修改评分</span>
+                    <span class="text-sm">等待选择选手...</span>
                 </div>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-4 md:gap-6">
-                <div class="card">
-                    <div class="card-header flex justify-between items-center">
-                        <h3 class="card-title">当前选手</h3>
-                        <span id="roundBadge" class="badge badge-primary hidden"></span>
+                <div id="scoringArea" class="hidden flex items-center gap-4">
+                    <div class="avatar avatar-lg shrink-0 bg-slate-700 flex items-center justify-center text-white font-bold text-lg" id="avatarContainer">
+                        <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/>
+                        </svg>
                     </div>
-                    <div id="contestantInfo" class="flex flex-col items-center text-center">
-                        <div class="avatar avatar-lg mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <h2 id="contestantName" class="text-xl md:text-2xl font-semibold mb-2">等待选手...</h2>
-                        <div class="flex flex-col items-center gap-1 mb-2">
-                            <span class="badge badge-primary" id="contestantNumber">--</span>
-                            <span class="text-muted text-sm" id="contestantDepartment">--</span>
-                        </div>
-                        <p class="text-muted text-sm" id="contestantDescription">暂无选手信息</p>
-                        <div id="currentRoundName" class="text-sm text-muted mt-2"></div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">评分</h3>
-                    </div>
-                    <div id="scoringArea">
-                        <div class="score-display-container mb-6">
-                            <div class="score-value-large" id="scoreValue">0.0</div>
-                            <div class="text-center text-white/80 text-sm mt-1">分</div>
-                        </div>
-                        
-                        <div class="numpad-grid">
-                            <button class="numpad-btn" onclick="inputNumber('1')">1</button>
-                            <button class="numpad-btn" onclick="inputNumber('2')">2</button>
-                            <button class="numpad-btn" onclick="inputNumber('3')">3</button>
-                            <button class="numpad-btn" onclick="inputNumber('4')">4</button>
-                            <button class="numpad-btn" onclick="inputNumber('5')">5</button>
-                            <button class="numpad-btn" onclick="inputNumber('6')">6</button>
-                            <button class="numpad-btn" onclick="inputNumber('7')">7</button>
-                            <button class="numpad-btn" onclick="inputNumber('8')">8</button>
-                            <button class="numpad-btn" onclick="inputNumber('9')">9</button>
-                            <button class="numpad-btn numpad-decimal" onclick="inputDecimal()">.</button>
-                            <button class="numpad-btn" onclick="inputNumber('0')">0</button>
-                            <button class="numpad-btn numpad-clear" onclick="clearScore()">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
-                                    <line x1="18" y1="9" x2="12" y2="15"></line>
-                                    <line x1="12" y1="9" x2="18" y2="15"></line>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-xs text-slate-500" id="contestantNumber">#编号</span>
+                            <span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30" id="roundBadge">轮次</span>
+                            <span id="lockedAlert" class="hidden text-xs bg-red-500/10 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20 flex items-center gap-1">
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
                                 </svg>
-                            </button>
+                                已锁定
+                            </span>
                         </div>
-                        
-                        <div class="flex gap-3 mt-6">
-                            <button id="submitBtn" class="btn btn-cta btn-lg flex-1" disabled>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                </svg>
-                                <span id="submitBtnText">提交评分</span>
-                            </button>
-                        </div>
-                        <div id="submittedInfo" class="hidden mt-4 text-center">
-                            <span class="badge badge-success">已评分</span>
-                        </div>
-                    </div>
-                    <div id="noContestantArea" class="hidden">
-                        <div class="empty-state">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
-                            <p>暂无当前选手</p>
-                            <p class="text-sm">请等待管理员选择选手</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mt-4 md:mt-6">
-                <div class="card-header">
-                    <h3 class="card-title">已评分选手</h3>
-                </div>
-                <div id="scoredList" class="grid gap-3">
-                    <div class="empty-state py-4">
-                        <p class="text-muted">暂无已评分记录</p>
+                        <h2 class="font-bold text-white text-lg leading-tight truncate" id="contestantName">选手姓名</h2>
+                        <p class="text-sm text-slate-400 truncate" id="contestantDepartment">部门</p>
                     </div>
                 </div>
             </div>
         </div>
-    </main>
 
-    <div class="toast-container" id="toastContainer"></div>
+        <!-- 评分主体 -->
+        <div class="flex-1 flex flex-col items-center justify-center p-4 max-w-sm mx-auto w-full">
+            <!-- 分数显示 -->
+            <div class="w-full mb-4">
+                <div id="scoreDisplay" class="text-center py-5 rounded-xl border-2 border-slate-700 bg-slate-900 transition-all">
+                    <div class="text-5xl font-black tabular-nums text-slate-700" id="scoreValue">0</div>
+                    <div id="submittedInfo" class="hidden text-xs text-slate-500 mt-1.5">已提交评分</div>
+                </div>
+            </div>
+
+            <!-- 数字键盘 -->
+            <div class="w-full space-y-2">
+                <div class="flex gap-2">
+                    <button class="numpad-btn flex-1" onclick="inputNumber('7')">7</button>
+                    <button class="numpad-btn flex-1" onclick="inputNumber('8')">8</button>
+                    <button class="numpad-btn flex-1" onclick="inputNumber('9')">9</button>
+                </div>
+                <div class="flex gap-2">
+                    <button class="numpad-btn flex-1" onclick="inputNumber('4')">4</button>
+                    <button class="numpad-btn flex-1" onclick="inputNumber('5')">5</button>
+                    <button class="numpad-btn flex-1" onclick="inputNumber('6')">6</button>
+                </div>
+                <div class="flex gap-2">
+                    <button class="numpad-btn flex-1" onclick="inputNumber('1')">1</button>
+                    <button class="numpad-btn flex-1" onclick="inputNumber('2')">2</button>
+                    <button class="numpad-btn flex-1" onclick="inputNumber('3')">3</button>
+                </div>
+                <div class="flex gap-2">
+                    <button class="numpad-btn clear flex-1" onclick="clearScore()">C</button>
+                    <button class="numpad-btn flex-1" onclick="inputNumber('0')">0</button>
+                    <button class="numpad-btn flex-1" onclick="inputDecimal()">.</button>
+                </div>
+                <div class="flex gap-2">
+                    <button class="numpad-btn flex-1" onclick="backspace()" style="background: rgba(245, 158, 11, 0.2); color: #fcd34d; border-color: rgba(245, 158, 11, 0.3);">
+                        ⌫
+                    </button>
+                    <button id="submitBtn" class="numpad-btn submit flex-1" onclick="handleSubmitScore()">
+                        提交
+                    </button>
+                </div>
+            </div>
+
+            <!-- 评分历史按钮 -->
+            <button id="showHistoryBtn" class="mt-5 flex items-center gap-1.5 text-slate-500 hover:text-slate-300 text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                我的评分记录
+            </button>
+        </div>
+    </div>
+
+    <!-- 评分历史面板 -->
+    <div id="historyPanel" class="fixed inset-x-0 bottom-0 bg-slate-900 border-t border-slate-800 max-h-[60vh] overflow-y-auto z-40 transform translate-y-full transition-transform duration-300">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800 sticky top-0 bg-slate-900">
+            <h3 class="font-semibold text-white text-sm">我的评分记录</h3>
+            <button id="closeHistoryBtn" class="text-slate-400 hover:text-white transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div id="historyList" class="p-4 space-y-2">
+            <!-- 历史记录将通过JS动态生成 -->
+        </div>
+    </div>
+
+    <!-- 历史面板遮罩 -->
+    <div id="historyOverlay" class="hidden fixed inset-0 bg-black/40 z-30"></div>
 
     <script src="js/supabase-client.js"></script>
     <script src="js/judge.js"></script>

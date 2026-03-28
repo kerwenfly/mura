@@ -3,123 +3,243 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大屏显示 - 多人在线实时评分系统</title>
-    <script src="lib/tailwind.min.js"></script>
+    <title>展示大屏 - ScoreLive</title>
     <script src="lib/supabase.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* 全屏展示样式 */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        /* 大字体适配 */
+        .display-title {
+            font-size: clamp(2rem, 8vw, 6rem);
+        }
+
+        .display-subtitle {
+            font-size: clamp(1rem, 3vw, 2rem);
+        }
+
+        .display-score {
+            font-size: clamp(3rem, 15vw, 12rem);
+        }
+
+        /* 旋转动画 */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .animate-spin-slow {
+            animation: spin 4s linear infinite;
+        }
+
+        /* 脉冲动画 */
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+
+        .animate-pulse-dot {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        /* 淡入动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        /* 进度条动画 */
+        .progress-bar {
+            transition: width 0.8s ease-out;
+        }
+
+        /* 评分卡片动画 */
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .animate-scale-in {
+            animation: scaleIn 0.4s ease-out forwards;
+        }
+
+        /* 排名项动画 */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .animate-slide-in {
+            animation: slideIn 0.5s ease-out forwards;
+        }
+
+        /* 隐藏滚动条 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
 </head>
-<body>
-    <div class="display-container">
-        <div id="eventSelectSection" class="display-content">
-            <div class="max-w-md mx-auto w-full">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title text-center">选择活动</h2>
+<body class="min-h-screen bg-slate-950">
+    <!-- 活动选择区域 -->
+    <div id="eventSelectSection" class="min-h-screen flex flex-col">
+        <!-- 导航栏 -->
+        <nav class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-br from-amber-600 to-orange-700 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <span class="font-bold text-white">ScoreLive</span>
+                <span class="text-slate-500">•</span>
+                <span class="text-slate-400 text-sm">展示大屏</span>
+            </div>
+            <a href="index.html" class="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                返回首页
+            </a>
+        </nav>
+
+        <!-- 活动列表 -->
+        <div class="flex-1 p-4 md:p-8 max-w-2xl mx-auto w-full">
+            <h1 class="text-2xl font-bold text-white mb-1 mt-4">选择活动</h1>
+            <p class="text-slate-400 text-sm mb-6">选择要展示的活动</p>
+
+            <div id="eventList" class="space-y-3">
+                <!-- 活动列表将动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 展示区域 -->
+    <div id="displaySection" class="hidden min-h-screen flex flex-col relative">
+        <!-- 顶部栏 -->
+        <div id="displayHeader" class="hidden relative z-10 flex items-center justify-between px-4 py-2 bg-black/20 backdrop-blur-sm border-b border-white/5">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 bg-gradient-to-br from-amber-500 to-orange-600 rounded flex items-center justify-center">
+                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <span id="eventTitle" class="text-white/60 text-xs font-medium truncate max-w-[160px]"></span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="currentRoundBadge" class="hidden text-xs px-2 py-0.5 rounded-full border border-blue-500/50 text-blue-300 bg-blue-500/10"></span>
+                <span id="modeBadge" class="text-xs px-2 py-0.5 rounded-full border border-slate-500/50 text-slate-400 bg-slate-500/10">waiting</span>
+                <button id="fullscreenBtn" class="text-white/40 hover:text-white/80 transition-colors p-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                    </svg>
+                </button>
+                <button id="backBtn" class="text-white/40 hover:text-white/80 transition-colors p-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 等待模式 -->
+        <div id="waitingMode" class="hidden flex flex-col items-center justify-center flex-1 text-center px-4">
+            <div class="w-24 h-24 rounded-full border-4 border-white/10 border-t-white/60 mb-8 animate-spin-slow"></div>
+            <h1 id="waitingEventTitle" class="display-title font-black text-white mb-4 leading-tight"></h1>
+            <p class="display-subtitle text-white/50">活动即将开始...</p>
+            <div class="flex items-center gap-2 mt-8">
+                <div class="w-2 h-2 rounded-full bg-white/40 animate-pulse-dot" style="animation-delay: 0s;"></div>
+                <div class="w-2 h-2 rounded-full bg-white/40 animate-pulse-dot" style="animation-delay: 0.3s;"></div>
+                <div class="w-2 h-2 rounded-full bg-white/40 animate-pulse-dot" style="animation-delay: 0.6s;"></div>
+            </div>
+        </div>
+
+        <!-- 评分模式 -->
+        <div id="scoringMode" class="hidden flex flex-col items-center justify-center flex-1 px-4">
+            <div class="w-full max-w-2xl text-center">
+                <!-- 轮次标签 -->
+                <div id="scoringRoundTag" class="hidden inline-block bg-blue-500/20 border border-blue-500/40 text-blue-300 text-sm px-4 py-1.5 rounded-full mb-6"></div>
+
+                <!-- 选手头像 -->
+                <div id="scoringAvatar" class="w-28 h-28 rounded-full overflow-hidden mx-auto mb-6 ring-4 ring-white/20 shadow-2xl flex items-center justify-center bg-slate-700 text-white text-4xl font-black">
+                    <svg class="w-12 h-12 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                </div>
+
+                <!-- 选手信息 -->
+                <div class="text-white/40 text-lg mb-1">#<span id="scoringNumber">--</span></div>
+                <h2 id="scoringName" class="display-title font-black text-white mb-2">等待选手...</h2>
+                <p id="scoringDepartment" class="text-white/50 text-lg mb-2"></p>
+                <p id="scoringDescription" class="text-white/30 text-sm mb-8 max-w-md mx-auto"></p>
+
+                <!-- 评分进度 -->
+                <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-white/50 text-sm">已收到评分</span>
+                        <span class="text-white font-bold"><span id="receivedCount">0</span> / <span id="totalCount">0</span></span>
                     </div>
-                    <div id="eventList" class="space-y-2">
-                        <div class="empty-state py-4">
-                            <p class="text-muted">加载中...</p>
-                        </div>
+                    <div class="w-full bg-white/10 rounded-full h-3 overflow-hidden">
+                        <div id="progressBar" class="progress-bar h-full bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="displaySection" class="hidden">
-            <header id="displayHeader" class="py-3 md:py-4 px-4 md:px-6 border-b border-glass">
-                <div class="flex items-center justify-center gap-3 md:gap-4">
-                    <h1 class="text-center text-2xl md:text-3xl lg:text-4xl" id="eventTitle">多人在线实时评分系统</h1>
-                    <span id="currentRoundBadge" class="badge badge-primary hidden"></span>
-                </div>
-            </header>
-
-            <div class="display-content" id="displayContent">
-                <div id="waitingMode" class="hidden text-center fade-in flex flex-col items-center justify-center min-h-screen">
-                    <h1 id="waitingEventTitle" class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl mb-8 text-center"></h1>
-                    <div class="pulse">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-6 text-primary">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        <!-- 结果模式 -->
+        <div id="resultMode" class="hidden flex flex-col items-center justify-center flex-1 px-4 py-6 overflow-auto hide-scrollbar">
+            <div class="w-full max-w-3xl">
+                <!-- 选手信息 -->
+                <div class="flex items-center gap-6 mb-8">
+                    <div id="resultAvatar" class="w-20 h-20 rounded-2xl overflow-hidden shrink-0 ring-4 ring-white/20 flex items-center justify-center bg-slate-700 text-white text-2xl font-black">
+                        <svg class="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                         </svg>
                     </div>
-                    <h2 class="text-2xl md:text-3xl lg:text-4xl mb-4">等待开始</h2>
-                    <p class="text-muted text-base md:text-lg">活动即将开始，请稍候...</p>
-                </div>
-
-                <div id="scoringMode" class="hidden w-full max-w-4xl mx-auto fade-in">
-                    <div class="text-center mb-6 md:mb-8">
-                        <div class="contestant-avatar mx-auto" id="scoringAvatar">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <h2 id="scoringName" class="text-2xl md:text-3xl lg:text-4xl mb-3">选手姓名</h2>
-                        <div class="flex flex-col items-center justify-center gap-1 mb-4">
-                            <span class="badge badge-primary text-base md:text-lg px-4 py-1" id="scoringNumber">01</span>
-                            <span class="text-muted text-base md:text-lg" id="scoringDepartment">单位</span>
-                        </div>
-                        <p class="text-muted text-base md:text-lg max-w-xl mx-auto" id="scoringDescription">选手简介</p>
-                    </div>
-
-                    <div class="card">
-                        <div class="text-center">
-                            <div class="flex items-center justify-center gap-3 md:gap-4 mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary pulse">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                                <span class="text-lg md:text-xl">评分进行中...</span>
-                            </div>
-                            <div class="flex items-center justify-center gap-4 md:gap-6">
-                                <div class="text-center">
-                                    <div class="text-3xl md:text-4xl font-bold text-primary" id="receivedCount">0</div>
-                                    <div class="text-muted text-sm">已收评分</div>
-                                </div>
-                                <div class="text-2xl text-muted">/</div>
-                                <div class="text-center">
-                                    <div class="text-3xl md:text-4xl font-bold" id="totalCount">0</div>
-                                    <div class="text-muted text-sm">评委总数</div>
-                                </div>
-                            </div>
-                            <div class="mt-4">
-                                <div class="progress-bar">
-                                    <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                        </div>
+                    <div>
+                        <div id="resultRoundInfo" class="text-white/40 text-sm mb-1"></div>
+                        <h2 id="resultName" class="text-3xl md:text-4xl font-black text-white leading-tight"></h2>
+                        <p id="resultDepartment" class="text-white/50"></p>
                     </div>
                 </div>
 
-                <div id="resultMode" class="hidden w-full max-w-4xl mx-auto fade-in">
-                    <div class="text-center mb-6 md:mb-8">
-                        <div class="contestant-avatar mx-auto" id="resultAvatar">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <h2 id="resultName" class="text-2xl md:text-3xl lg:text-4xl mb-3">选手姓名</h2>
-                        <div class="flex flex-col items-center justify-center gap-1 mb-4">
-                            <span class="badge badge-primary text-base md:text-lg px-4 py-1" id="resultNumber">01</span>
-                            <span class="text-muted text-base md:text-lg" id="resultDepartment">单位</span>
-                        </div>
-                    </div>
-
-                    <div class="card mb-6">
-                        <h3 class="text-base md:text-xl mb-4 text-center text-muted">评委评分</h3>
-                        <div class="score-grid" id="scoreGrid"></div>
-                    </div>
-
-                    <div class="text-center slide-up">
-                        <p class="text-muted text-base md:text-lg mb-2">本轮得分</p>
-                        <div class="final-score count-up" id="finalScore">0.00</div>
-                    </div>
+                <!-- 评委评分网格 -->
+                <div id="scoreGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mb-8">
+                    <!-- 评分卡片将动态加载 -->
                 </div>
 
-                <div id="finalMode" class="hidden w-full max-w-4xl mx-auto fade-in">
-                    <h2 class="text-2xl md:text-3xl lg:text-4xl text-center mb-6 md:mb-8">最终排名</h2>
-                    <div id="rankingList"></div>
+                <!-- 最终得分 -->
+                <div class="text-center bg-white/5 border border-white/10 rounded-3xl p-8">
+                    <div id="resultRoundLabel" class="text-white/40 text-sm mb-2 uppercase tracking-widest">本轮得分</div>
+                    <div id="finalScore" class="display-score font-black text-white tabular-nums leading-none">0.00</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- 最终排名模式 -->
+        <div id="finalMode" class="hidden flex flex-col items-center flex-1 px-4 py-6 overflow-auto hide-scrollbar">
+            <h1 class="display-title font-black text-white mb-1 text-center">最终排名</h1>
+            <p id="finalEventName" class="text-white/40 mb-8 text-center"></p>
+
+            <div id="rankingList" class="w-full max-w-3xl space-y-2">
+                <!-- 排名列表将动态加载 -->
             </div>
         </div>
     </div>

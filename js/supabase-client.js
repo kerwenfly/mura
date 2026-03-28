@@ -129,7 +129,6 @@ const db = {
         if (error) throw error;
     },
 
-    // 评分轮次管理
     async getScoringRounds(eventId) {
         const supabase = getSupabase();
         const { data, error } = await supabase.from('scoring_rounds')
@@ -173,7 +172,6 @@ const db = {
         if (error) throw error;
     },
 
-    // 轮次分组设置
     async getRoundGroupSettings(roundId) {
         const supabase = getSupabase();
         const { data, error } = await supabase.from('round_group_settings')
@@ -213,7 +211,6 @@ const db = {
         }
     },
 
-    // 评分数据
     async getScore(contestantId, judgeId, roundId) {
         const supabase = getSupabase();
         let query = supabase.from('scores').select('*')
@@ -300,7 +297,6 @@ const db = {
         return data;
     },
 
-    // 结果计算
     async getRoundResults(roundId) {
         const supabase = getSupabase();
         const { data, error } = await supabase.rpc('get_round_results', { p_round_id: roundId });
@@ -325,7 +321,6 @@ const db = {
         return data;
     },
 
-    // 活动管理
     async getEvents() {
         const supabase = getSupabase();
         const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: false });
@@ -383,7 +378,6 @@ const db = {
         return data;
     },
 
-    // 订阅
     subscribeToScores(callback) {
         const supabase = getSupabase();
         return supabase.channel('scores-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'scores' }, callback).subscribe();
@@ -505,7 +499,6 @@ const judgeAuth = {
     }
 };
 
-// 计算方法说明
 const calculationMethods = {
     average: { name: '平均分', description: '所有评委评分的平均值' },
     trimmed_average: { name: '去高低分平均', description: '去除指定数量的最高分和最低分后的平均值' }
