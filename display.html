@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>展示大屏 - ScoreLive</title>
     <script src="lib/supabase.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="lib/tailwind.min.js"></script>
     <link rel="stylesheet" href="css/styles.css">
     <style>
         /* 全屏展示样式 */
@@ -102,7 +102,7 @@
     <div id="eventSelectSection" class="min-h-screen flex flex-col">
         <!-- 导航栏 -->
         <nav class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
+            <a href="index.html" class="flex items-center gap-3 cursor-pointer">
                 <div class="w-8 h-8 bg-gradient-to-br from-amber-600 to-orange-700 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
@@ -111,7 +111,7 @@
                 <span class="font-bold text-white">ScoreLive</span>
                 <span class="text-slate-500">•</span>
                 <span class="text-slate-400 text-sm">展示大屏</span>
-            </div>
+            </a>
             <a href="index.html" class="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>

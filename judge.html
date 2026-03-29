@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>评委评分 - ScoreLive</title>
     <script src="lib/supabase.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="lib/tailwind.min.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="min-h-screen bg-slate-950">
@@ -16,7 +16,7 @@
     <div id="eventSelectSection" class="min-h-screen flex flex-col">
         <!-- 导航栏 -->
         <nav class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
+            <a href="index.html" class="flex items-center gap-3 cursor-pointer">
                 <div class="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
@@ -25,7 +25,7 @@
                 <span class="font-bold text-white">ScoreLive</span>
                 <span class="text-slate-500 hidden sm:block">•</span>
                 <span class="text-slate-400 text-sm hidden sm:block">评委入口</span>
-            </div>
+            </a>
             <a href="index.html" class="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -56,12 +56,12 @@
                 <form id="loginForm" class="space-y-3">
                     <div>
                         <label class="form-label">用户名</label>
-                        <input type="text" id="username" class="form-input" placeholder="judge1" required>
+                        <input type="text" id="username" class="form-input" placeholder="输入用户名" required>
                     </div>
                     <div>
                         <label class="form-label">密码</label>
                         <div class="relative">
-                            <input type="password" id="password" class="form-input pr-9" placeholder="••••••••" required>
+                            <input type="password" id="password" class="form-input pr-9" placeholder="输入密码" required>
                             <button type="button" id="togglePasswordBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
                                 <svg class="w-3.5 h-3.5" id="eyeIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -74,10 +74,6 @@
                         登录
                     </button>
                 </form>
-
-                <div class="mt-4 p-2.5 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                    <p class="text-xs text-slate-500">演示账户: judge1 / judge123, judge2 / judge123</p>
-                </div>
 
                 <div class="mt-4 text-center">
                     <button id="backToEventBtn" class="text-sm text-slate-400 hover:text-white transition-colors">
@@ -92,7 +88,7 @@
     <div id="scoringSection" class="hidden min-h-screen flex flex-col">
         <!-- 导航栏 -->
         <nav class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
+            <a href="index.html" class="flex items-center gap-3 cursor-pointer">
                 <div class="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
@@ -101,7 +97,7 @@
                 <span class="font-bold text-white">ScoreLive</span>
                 <span class="text-slate-500 hidden sm:block">•</span>
                 <span class="text-slate-400 text-sm hidden sm:block" id="navEventName">活动名称</span>
-            </div>
+            </a>
             <div class="flex items-center gap-3">
                 <span class="text-xs text-slate-400 hidden sm:block" id="judgeName">评委</span>
                 <button id="logoutBtn" class="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors">

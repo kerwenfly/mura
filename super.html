@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>超级管理员 - ScoreLive</title>
     <script src="lib/supabase.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="lib/tailwind.min.js"></script>
     <link rel="stylesheet" href="css/styles.css">
     <style>
         /* 超级管理员专用紫色主题 */
@@ -189,12 +189,12 @@
                 <form id="loginForm" class="space-y-4">
                     <div>
                         <label class="form-label">邮箱地址</label>
-                        <input type="email" id="email" class="form-input" placeholder="superadmin@system.com" required>
+                        <input type="email" id="email" class="form-input" placeholder="输入邮箱" required>
                     </div>
                     <div>
                         <label class="form-label">密码</label>
                         <div class="relative">
-                            <input type="password" id="password" class="form-input pr-10" placeholder="••••••••" required>
+                            <input type="password" id="password" class="form-input pr-10" placeholder="输入密码" required>
                             <button type="button" id="togglePassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
                                 <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -207,12 +207,6 @@
                         登录
                     </button>
                 </form>
-
-                <div class="mt-6 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                    <p class="text-xs text-slate-500 font-medium mb-1">演示账户</p>
-                    <p class="text-xs text-slate-400">邮箱: <span class="text-slate-300">superadmin@system.com</span></p>
-                    <p class="text-xs text-slate-400">密码: <span class="text-slate-300">super123</span></p>
-                </div>
             </div>
         </div>
     </div>
@@ -221,7 +215,7 @@
     <div id="adminSection" class="hidden flex flex-col min-h-screen">
         <!-- 导航栏 -->
         <nav class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
+            <a href="index.html" class="flex items-center gap-3 cursor-pointer">
                 <div class="w-8 h-8 super-gradient rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
@@ -230,7 +224,7 @@
                 <span class="font-bold text-white">ScoreLive</span>
                 <span class="text-slate-500">•</span>
                 <span class="text-slate-400 text-sm">Super Admin</span>
-            </div>
+            </a>
             <button id="logoutBtn" class="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>

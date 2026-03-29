@@ -115,15 +115,16 @@ function showAdminSection() {
 async function loadEvents() {
     try {
         events = await db.getEvents();
-        updateEventDropdown();
         
         const state = await db.getSystemState();
         systemState = state;
         
         if (state.current_event_id) {
             currentEventId = state.current_event_id;
-            updateEventStatus();
         }
+        
+        updateEventDropdown();
+        updateEventStatus();
     } catch (error) {
         showToast('加载活动失败', 'error');
         console.error(error);
@@ -280,12 +281,19 @@ function switchTab(tabName) {
     
     document.getElementById('controlTab').classList.toggle('hidden', tabName !== 'control');
     document.getElementById('settingsTab').classList.toggle('hidden', tabName !== 'settings');
+    document.getElementById('dataTab').classList.toggle('hidden', tabName !== 'data');
     
     const settingsSubTabs = document.getElementById('settingsSubTabs');
     if (tabName === 'settings') {
         settingsSubTabs.classList.remove('hidden');
     } else {
         settingsSubTabs.classList.add('hidden');
+    }
+
+    if (tabName === 'data') {
+        updateDataRoundSelect();
+        loadDataResults();
+        loadJudgeDetailResults();
     }
 }
 
@@ -1882,3 +1890,276 @@ window.setDisplayMode = setDisplayMode;
 window.toggleContestant = toggleContestant;
 window.toggleRound = toggleRound;
 window.clearAvatar = clearAvatar;
+
+// 数据管理功能
+function updateDataRoundSelect() {
+    const select = document.getElementById('dataRoundSelect');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="all">全部轮次</option>' +
+        scoringRounds.map(round => `<option value="${round.id}">${round.name}</option>`).join('');
+}
+
+async function loadDataResults() {
+    const tbody = document.getElementById('dataResultsBody');
+    const roundSelect = document.getElementById('dataRoundSelect');
+    const selectedRoundId = roundSelect ? roundSelect.value : 'all';
+    
+    if (!currentEventId) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-slate-500 py-8">请先选择活动</td></tr>';
+        return;
+    }
+    
+    if (contestants.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-slate-500 py-8">暂无选手数据</td></tr>';
+        return;
+    }
+    
+    try {
+        const results = await db.getFinalResultsWithRounds(currentEventId);
+        
+        if (!results || results.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-slate-500 py-8">暂无评分数据</td></tr>';
+            return;
+        }
+        
+        let sortedResults = [...results].sort((a, b) => b.final_score - a.final_score);
+        
+        tbody.innerHTML = sortedResults.map((result, index) => {
+            const rank = index + 1;
+            const rankClass = rank <= 3 ? `rank-${rank}` : '';
+            
+            let roundScoresHtml = '';
+            if (result.round_scores && result.round_scores.length > 0) {
+                if (selectedRoundId === 'all') {
+                    roundScoresHtml = result.round_scores.map(rs => {
+                        const score = rs.score ? parseFloat(rs.score).toFixed(2) : '-';
+                        return `<span class="inline-block px-2 py-0.5 rounded bg-slate-700 mr-1 text-xs">${rs.round_name}: ${score}</span>`;
+                    }).join('');
+                } else {
+                    const selectedRound = result.round_scores.find(rs => rs.round_id === selectedRoundId);
+                    const score = selectedRound && selectedRound.score ? parseFloat(selectedRound.score).toFixed(2) : '-';
+                    roundScoresHtml = `<span class="score-cell">${score}</span>`;
+                }
+            }
+            
+            return `
+                <tr>
+                    <td class="${rankClass}">${rank}</td>
+                    <td>#${result.number}</td>
+                    <td class="font-medium">${result.name}</td>
+                    <td class="text-slate-400">${result.department || '-'}</td>
+                    <td>${roundScoresHtml || '-'}</td>
+                    <td class="score-cell text-emerald-400">${parseFloat(result.final_score).toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('加载评分结果失败:', error);
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-slate-500 py-8">加载失败</td></tr>';
+    }
+}
+
+async function loadJudgeDetailResults() {
+    const header = document.getElementById('judgeDetailHeader');
+    const tbody = document.getElementById('judgeDetailBody');
+    
+    if (!currentEventId) {
+        header.innerHTML = '<th>编号</th><th>选手姓名</th>';
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-slate-500 py-8">请先选择活动</td></tr>';
+        return;
+    }
+    
+    if (contestants.length === 0 || judges.length === 0) {
+        header.innerHTML = '<th>编号</th><th>选手姓名</th>';
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-slate-500 py-8">暂无数据</td></tr>';
+        return;
+    }
+    
+    header.innerHTML = `
+        <th>编号</th>
+        <th>选手姓名</th>
+        ${judges.map(j => `<th class="text-center">评委${j.judge_number}</th>`).join('')}
+        <th class="text-center">平均分</th>
+    `;
+    
+    try {
+        const supabase = getSupabase();
+        const { data: allScores, error } = await supabase
+            .from('scores')
+            .select('contestant_id, judge_id, score, round_id')
+            .eq('event_id', currentEventId);
+        
+        if (error) throw error;
+        
+        tbody.innerHTML = contestants.map(contestant => {
+            const contestantScores = allScores.filter(s => s.contestant_id === contestant.id);
+            
+            let totalScore = 0;
+            let scoreCount = 0;
+            
+            const judgeCells = judges.map(judge => {
+                const scores = contestantScores.filter(s => s.judge_id === judge.id);
+                if (scores.length > 0) {
+                    const avgScore = scores.reduce((sum, s) => sum + (s.score || 0), 0) / scores.length;
+                    totalScore += avgScore;
+                    scoreCount++;
+                    return `<td class="text-center score-cell">${avgScore.toFixed(1)}</td>`;
+                }
+                return '<td class="text-center text-slate-600">-</td>';
+            }).join('');
+            
+            const avgScore = scoreCount > 0 ? (totalScore / scoreCount).toFixed(2) : '-';
+            
+            return `
+                <tr>
+                    <td>#${contestant.number}</td>
+                    <td class="font-medium">${contestant.name}</td>
+                    ${judgeCells}
+                    <td class="text-center score-cell text-emerald-400">${avgScore}</td>
+                </tr>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('加载评委明细失败:', error);
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-slate-500 py-8">加载失败</td></tr>';
+    }
+}
+
+async function exportToXlsx() {
+    if (!currentEventId) {
+        showToast('请先选择活动', 'error');
+        return;
+    }
+    
+    try {
+        const results = await db.getFinalResultsWithRounds(currentEventId);
+        const event = events.find(e => e.id === currentEventId);
+        const eventName = event ? event.name : '评分结果';
+        
+        if (!results || results.length === 0) {
+            showToast('暂无数据可导出', 'error');
+            return;
+        }
+        
+        let sortedResults = [...results].sort((a, b) => b.final_score - a.final_score);
+        
+        const rounds = scoringRounds.map(r => r.name);
+        
+        const headers = ['排名', '编号', '选手姓名', '部门/单位', ...rounds, '最终得分'];
+        
+        const data = sortedResults.map((result, index) => {
+            const row = [
+                index + 1,
+                result.number,
+                result.name,
+                result.department || '',
+            ];
+            
+            if (result.round_scores) {
+                rounds.forEach(roundName => {
+                    const rs = result.round_scores.find(r => r.round_name === roundName);
+                    row.push(rs && rs.score ? parseFloat(rs.score).toFixed(2) : '');
+                });
+            } else {
+                rounds.forEach(() => row.push(''));
+            }
+            
+            row.push(parseFloat(result.final_score).toFixed(2));
+            return row;
+        });
+        
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '评分结果');
+        
+        const colWidths = headers.map((h, i) => {
+            let maxLen = h.length;
+            data.forEach(row => {
+                const cellLen = String(row[i] || '').length;
+                if (cellLen > maxLen) maxLen = cellLen;
+            });
+            return { wch: Math.min(maxLen + 2, 30) };
+        });
+        ws['!cols'] = colWidths;
+        
+        XLSX.writeFile(wb, `${eventName}_评分结果.xlsx`);
+        showToast('导出成功', 'success');
+        
+    } catch (error) {
+        console.error('导出失败:', error);
+        showToast('导出失败', 'error');
+    }
+}
+
+async function exportJudgeDetailsXlsx() {
+    if (!currentEventId) {
+        showToast('请先选择活动', 'error');
+        return;
+    }
+    
+    try {
+        const supabase = getSupabase();
+        const { data: allScores, error } = await supabase
+            .from('scores')
+            .select('contestant_id, judge_id, score, round_id')
+            .eq('event_id', currentEventId);
+        
+        if (error) throw error;
+        
+        const event = events.find(e => e.id === currentEventId);
+        const eventName = event ? event.name : '评分结果';
+        
+        const headers = ['编号', '选手姓名', ...judges.map(j => `评委${j.judge_number}`), '平均分'];
+        
+        const data = contestants.map(contestant => {
+            const contestantScores = allScores.filter(s => s.contestant_id === contestant.id);
+            
+            let totalScore = 0;
+            let scoreCount = 0;
+            
+            const judgeScores = judges.map(judge => {
+                const scores = contestantScores.filter(s => s.judge_id === judge.id);
+                if (scores.length > 0) {
+                    const avgScore = scores.reduce((sum, s) => sum + (s.score || 0), 0) / scores.length;
+                    totalScore += avgScore;
+                    scoreCount++;
+                    return parseFloat(avgScore.toFixed(1));
+                }
+                return '';
+            });
+            
+            const avgScore = scoreCount > 0 ? parseFloat((totalScore / scoreCount).toFixed(2)) : '';
+            
+            return [contestant.number, contestant.name, ...judgeScores, avgScore];
+        });
+        
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '评委评分明细');
+        
+        const colWidths = headers.map((h, i) => {
+            let maxLen = h.length;
+            data.forEach(row => {
+                const cellLen = String(row[i] || '').length;
+                if (cellLen > maxLen) maxLen = cellLen;
+            });
+            return { wch: Math.min(maxLen + 2, 20) };
+        });
+        ws['!cols'] = colWidths;
+        
+        XLSX.writeFile(wb, `${eventName}_评委评分明细.xlsx`);
+        showToast('导出成功', 'success');
+        
+    } catch (error) {
+        console.error('导出失败:', error);
+        showToast('导出失败', 'error');
+    }
+}
+
+window.loadDataResults = loadDataResults;
+window.loadJudgeDetailResults = loadJudgeDetailResults;
+window.exportToXlsx = exportToXlsx;
+window.exportJudgeDetailsXlsx = exportJudgeDetailsXlsx;

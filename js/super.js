@@ -338,8 +338,7 @@ async function handleAdminSubmit(e) {
                 username,
                 email,
                 is_active: isActive,
-                expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
-                updated_at: new Date().toISOString()
+                expires_at: expiresAt ? new Date(expiresAt).toISOString() : null
             };
 
             if (password) {
@@ -383,10 +382,7 @@ async function toggleAdmin(id, newStatus) {
         const supabase = getSupabase();
         const { error } = await supabase
             .from('admins')
-            .update({
-                is_active: newStatus,
-                updated_at: new Date().toISOString()
-            })
+            .update({ is_active: newStatus })
             .eq('id', id);
 
         if (error) throw error;

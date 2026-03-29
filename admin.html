@@ -5,8 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理员后台 - ScoreLive</title>
     <script src="lib/supabase.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="lib/tailwind.min.js"></script>
+    <script src="lib/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+        }
+        .data-table th {
+            background: rgba(30, 41, 59, 0.5);
+            font-weight: 600;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: sticky;
+            top: 0;
+        }
+        .data-table td {
+            color: #e2e8f0;
+        }
+        .data-table tbody tr:hover {
+            background: rgba(30, 41, 59, 0.3);
+        }
+        .data-table .rank-1 { color: #fbbf24; font-weight: 700; }
+        .data-table .rank-2 { color: #9ca3af; font-weight: 700; }
+        .data-table .rank-3 { color: #d97706; font-weight: 700; }
+        .data-table .score-cell {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-slate-950">
     <!-- Toast 容器 -->
@@ -30,20 +66,16 @@
                 <form id="loginForm" class="space-y-4">
                     <div>
                         <label class="form-label">用户名</label>
-                        <input type="text" id="username" class="form-input" placeholder="admin" required>
+                        <input type="text" id="username" class="form-input" placeholder="输入用户名" required>
                     </div>
                     <div>
                         <label class="form-label">密码</label>
-                        <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                        <input type="password" id="password" class="form-input" placeholder="输入密码" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-full">
                         登录
                     </button>
                 </form>
-
-                <div class="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                    <p class="text-xs text-slate-500">演示账户: admin / admin123</p>
-                </div>
 
                 <div class="mt-4 text-center">
                     <a href="index.html" class="text-sm text-slate-400 hover:text-white transition-colors">
@@ -58,7 +90,7 @@
     <div id="adminSection" class="hidden flex flex-col min-h-screen">
         <!-- 导航栏 -->
         <nav class="bg-slate-900 border-b border-slate-800 px-4 md:px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
-            <div class="flex items-center gap-3">
+            <a href="index.html" class="flex items-center gap-3 cursor-pointer">
                 <div class="w-8 h-8 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -68,7 +100,7 @@
                 <span class="font-bold text-white">ScoreLive</span>
                 <span class="hidden sm:block text-slate-500">•</span>
                 <span class="hidden sm:block text-slate-400 text-sm">Admin: <span id="adminUsername"></span></span>
-            </div>
+            </a>
 
             <!-- 活动选择器 -->
             <div class="relative">
@@ -103,6 +135,7 @@
             <div class="flex px-4 md:px-6 gap-1">
                 <button class="tab active" data-tab="control">控制面板</button>
                 <button class="tab" data-tab="settings">设置</button>
+                <button class="tab" data-tab="data">数据管理</button>
             </div>
             <!-- 设置子标签页 -->
             <div id="settingsSubTabs" class="hidden border-t border-slate-800">
@@ -335,6 +368,87 @@
                             <button id="applyThemeBtn" class="btn btn-primary w-full mt-4">
                                 应用主题
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据管理标签页 -->
+            <div id="dataTab" class="hidden p-4 md:p-6 max-w-7xl mx-auto">
+                <div class="new-card">
+                    <div class="new-card-header">
+                        <div class="flex items-center justify-between w-full">
+                            <div>
+                                <h3 class="new-card-title">评分结果</h3>
+                                <p class="new-card-subtitle">查看和导出评分数据</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <select id="dataRoundSelect" class="form-select text-sm" onchange="loadDataResults()">
+                                    <option value="all">全部轮次</option>
+                                </select>
+                                <button id="exportXlsxBtn" class="btn btn-primary btn-sm" onclick="exportToXlsx()">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    导出 Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="new-card-body" style="border-top: 1px solid rgba(30, 41, 59, 0.5); padding: 0;">
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>排名</th>
+                                        <th>编号</th>
+                                        <th>选手姓名</th>
+                                        <th>部门/单位</th>
+                                        <th id="roundHeaders">评分</th>
+                                        <th>最终得分</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dataResultsBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-slate-500 py-8">请先选择活动</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 评委评分明细 -->
+                <div class="new-card mt-4">
+                    <div class="new-card-header">
+                        <div class="flex items-center justify-between w-full">
+                            <div>
+                                <h3 class="new-card-title">评委评分明细</h3>
+                                <p class="new-card-subtitle">每位评委对各选手的评分详情</p>
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="exportJudgeDetailsXlsx()">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                导出Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div class="new-card-body" style="border-top: 1px solid rgba(30, 41, 59, 0.5); padding: 0;">
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead>
+                                    <tr id="judgeDetailHeader">
+                                        <th>编号</th>
+                                        <th>选手姓名</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="judgeDetailBody">
+                                    <tr>
+                                        <td colspan="2" class="text-center text-slate-500 py-8">请先选择活动</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
