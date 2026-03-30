@@ -1212,9 +1212,7 @@ async function handleRoundSubmit(e) {
                 }
             });
             
-            for (const setting of settings) {
-                await db.createRoundGroupSetting(setting);
-            }
+            await db.saveRoundGroupSettings(roundId, settings);
         }
         
         closeRoundModal();
