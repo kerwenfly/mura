@@ -1506,6 +1506,19 @@ function subscribeToChanges() {
         }
     });
     subscriptions.push(roundSub);
+    
+    // 订阅评分变化，实现评分进度实时更新
+    const scoreSub = db.subscribeToScores(async (payload) => {
+        // 只在当前活动、当前选手、当前轮次时更新
+        if (currentEventId && systemState?.current_contestant_id && currentRoundId) {
+            const scoreData = payload.new;
+            // 确保评分数据属于当前活动和当前轮次
+            if (scoreData?.event_id === currentEventId && scoreData?.round_id === currentRoundId) {
+                updateScoreProgress();
+            }
+        }
+    });
+    subscriptions.push(scoreSub);
 }
 
 function initThemeSettings() {
