@@ -537,7 +537,7 @@ async function handleSubmitScore() {
         showToast(error.message || '提交失败', 'error');
     } finally {
         submitBtn.disabled = systemState?.is_locked;
-        submitBtn.textContent = 'SUBMIT';
+        submitBtn.textContent = '提交';
     }
 }
 

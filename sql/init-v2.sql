@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS system_state (
     current_event_id UUID REFERENCES events(id),
     current_contestant_id UUID REFERENCES contestants(id) ON DELETE SET NULL,
     current_round_id UUID REFERENCES scoring_rounds(id) ON DELETE SET NULL,
-    display_mode TEXT DEFAULT 'waiting' CHECK (display_mode IN ('waiting', 'scoring', 'result', 'final')),
+    display_mode TEXT DEFAULT 'waiting' CHECK (display_mode IN ('waiting', 'scoring', 'result', 'contestant_final', 'final')),
     display_theme INTEGER DEFAULT 1 CHECK (display_theme >= 1 AND display_theme <= 10),
     is_locked BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMPTZ DEFAULT NOW()

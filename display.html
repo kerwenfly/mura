@@ -233,6 +233,44 @@
             </div>
         </div>
 
+        <!-- 选手最终结果模式 -->
+        <div id="contestantFinalMode" class="hidden flex flex-col items-center justify-center flex-1 px-4 py-6 overflow-auto hide-scrollbar">
+            <div class="w-full max-w-4xl">
+                <!-- 选手信息 -->
+                <div class="flex items-center gap-6 mb-8">
+                    <div id="contestantFinalAvatar" class="w-24 h-24 rounded-2xl overflow-hidden shrink-0 ring-4 ring-amber-500/30 flex items-center justify-center bg-slate-700 text-white text-3xl font-black">
+                        <svg class="w-12 h-12 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-white/40 text-sm mb-1">#<span id="contestantFinalNumber">--</span></div>
+                        <h2 id="contestantFinalName" class="text-3xl md:text-4xl font-black text-white leading-tight"></h2>
+                        <p id="contestantFinalDepartment" class="text-white/50"></p>
+                    </div>
+                </div>
+
+                <!-- 各轮次得分 -->
+                <div id="contestantFinalRoundScores" class="space-y-3 mb-8">
+                    <!-- 轮次得分将动态加载 -->
+                </div>
+
+                <!-- 评委评分明细 -->
+                <div class="bg-white/5 border border-white/10 rounded-2xl p-5 mb-8">
+                    <h3 class="text-white/60 text-sm mb-4 font-medium">评委评分明细</h3>
+                    <div id="contestantFinalJudgeScores" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                        <!-- 评委评分将动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 最终得分 -->
+                <div class="text-center bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-3xl p-8">
+                    <div class="text-amber-400/60 text-sm mb-2 uppercase tracking-widest">最终得分</div>
+                    <div id="contestantFinalTotalScore" class="display-score font-black text-amber-400 tabular-nums leading-none">0.00</div>
+                </div>
+            </div>
+        </div>
+
         <!-- 最终排名模式 -->
         <div id="finalMode" class="hidden flex flex-col items-center flex-1 px-4 py-6 overflow-auto hide-scrollbar">
             <h1 class="display-title font-black text-white mb-1 text-center">最终排名</h1>

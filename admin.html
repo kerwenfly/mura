@@ -210,7 +210,15 @@
                                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                     </svg>
-                                    <span>显示结果</span>
+                                    <span>轮次结果</span>
+                                </button>
+                                <button class="display-mode-btn contestant-final" data-mode="contestant_final" onclick="setDisplayMode('contestant_final')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="8" r="5"></circle>
+                                        <path d="M20 21a8 8 0 0 0-16 0"></path>
+                                        <circle cx="12" cy="8" r="2" fill="currentColor"></circle>
+                                    </svg>
+                                    <span>最终结果</span>
                                 </button>
                                 <button class="display-mode-btn final" data-mode="final" onclick="setDisplayMode('final')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -271,12 +279,27 @@
                                     <h3 class="new-card-title">选手管理</h3>
                                     <p class="new-card-subtitle">管理参赛选手信息</p>
                                 </div>
-                                <button id="addContestantBtn" class="btn btn-secondary btn-sm">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                    </svg>
-                                    添加
-                                </button>
+                                <div class="flex items-center gap-2">
+                                    <button id="downloadContestantTemplateBtn" class="btn btn-secondary btn-sm" onclick="downloadContestantTemplate()">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        下载模板
+                                    </button>
+                                    <button id="importContestantBtn" class="btn btn-secondary btn-sm" onclick="document.getElementById('contestantFileInput').click()">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                        </svg>
+                                        导入xlsx
+                                    </button>
+                                    <input type="file" id="contestantFileInput" accept=".xlsx,.xls" class="hidden" onchange="handleContestantImport(event)">
+                                    <button id="addContestantBtn" class="btn btn-secondary btn-sm">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                        </svg>
+                                        添加
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div id="contestantListSettings" class="new-card-body divide-y" style="border-top: 1px solid rgba(30, 41, 59, 0.5); max-height: calc(100vh - 280px); overflow-y: auto;">
@@ -317,12 +340,27 @@
                                         <h3 class="new-card-title">评委管理</h3>
                                         <p class="new-card-subtitle">管理评委账户</p>
                                     </div>
+                                    <div class="flex items-center gap-2">
+                                    <button id="downloadJudgeTemplateBtn" class="btn btn-secondary btn-sm" onclick="downloadJudgeTemplate()">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        下载模板
+                                    </button>
+                                    <button id="importJudgeBtn" class="btn btn-secondary btn-sm" onclick="document.getElementById('judgeFileInput').click()">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                        </svg>
+                                        导入xlsx
+                                    </button>
+                                    <input type="file" id="judgeFileInput" accept=".xlsx,.xls" class="hidden" onchange="handleJudgeImport(event)">
                                     <button id="addJudgeBtn" class="btn btn-secondary btn-sm">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                         </svg>
                                         添加
                                     </button>
+                                </div>
                                 </div>
                             </div>
                             <div id="judgeList" class="new-card-body divide-y" style="border-top: 1px solid rgba(30, 41, 59, 0.5); max-height: calc(100vh - 320px); overflow-y: auto;">

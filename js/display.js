@@ -184,6 +184,7 @@ function updateDisplayMode() {
     document.getElementById('waitingMode').classList.add('hidden');
     document.getElementById('scoringMode').classList.add('hidden');
     document.getElementById('resultMode').classList.add('hidden');
+    document.getElementById('contestantFinalMode').classList.add('hidden');
     document.getElementById('finalMode').classList.add('hidden');
 
     const header = document.getElementById('displayHeader');
@@ -197,6 +198,7 @@ function updateDisplayMode() {
         waiting: '等待中',
         scoring: '评分中',
         result: '显示结果',
+        contestant_final: '最终结果',
         final: '最终排名'
     };
     modeBadge.textContent = modeLabels[mode] || mode;
@@ -219,6 +221,12 @@ function updateDisplayMode() {
             header.classList.remove('hidden');
             document.getElementById('resultMode').classList.remove('hidden');
             showResultMode();
+            break;
+
+        case 'contestant_final':
+            header.classList.remove('hidden');
+            document.getElementById('contestantFinalMode').classList.remove('hidden');
+            showContestantFinalMode();
             break;
 
         case 'final':
@@ -419,6 +427,131 @@ function animateScore(targetScore) {
         const progress = Math.min(elapsed / duration, 1);
 
         // 缓动函数
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        const currentScore = startScore + (targetScore - startScore) * easeProgress;
+
+        scoreElement.textContent = currentScore.toFixed(2);
+
+        if (progress < 1) {
+            requestAnimationFrame(updateScore);
+        }
+    }
+
+    requestAnimationFrame(updateScore);
+}
+
+// 显示选手最终结果模式
+async function showContestantFinalMode() {
+    const contestantId = systemState?.current_contestant_id;
+    if (!contestantId) return;
+
+    // 查找选手
+    let contestant = contestants.find(c => c.id === contestantId);
+    if (!contestant) {
+        try {
+            contestant = await db.getContestant(contestantId);
+        } catch (error) {
+            console.error('获取选手信息失败:', error);
+            return;
+        }
+    }
+
+    if (!contestant) return;
+
+    // 更新选手信息
+    document.getElementById('contestantFinalNumber').textContent = contestant.number;
+    document.getElementById('contestantFinalName').textContent = contestant.name;
+    document.getElementById('contestantFinalDepartment').textContent = contestant.department || '';
+
+    // 更新头像
+    const avatarContainer = document.getElementById('contestantFinalAvatar');
+    if (contestant.avatar_url) {
+        avatarContainer.innerHTML = `<img src="${contestant.avatar_url}" alt="${contestant.name}" class="w-full h-full object-cover">`;
+    } else {
+        const initials = getInitials(contestant.name);
+        avatarContainer.innerHTML = `<span class="text-3xl font-black">${initials}</span>`;
+    }
+
+    try {
+        // 获取选手所有轮次的得分
+        const results = await db.getFinalResultsWithRounds(currentEvent.id);
+        const contestantResult = results?.find(r => r.contestant_id === contestant.id);
+
+        // 显示各轮次得分
+        const roundScoresContainer = document.getElementById('contestantFinalRoundScores');
+        if (contestantResult && contestantResult.round_scores && contestantResult.round_scores.length > 0) {
+            roundScoresContainer.innerHTML = contestantResult.round_scores.map(rs => {
+                const round = scoringRounds.find(r => r.id === rs.round_id);
+                const roundName = round ? round.name : rs.round_name;
+                const score = rs.score ? parseFloat(rs.score).toFixed(2) : '0.00';
+                return `
+                    <div class="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                        <span class="text-white/60 text-sm">${roundName}</span>
+                        <span class="text-white font-bold text-lg tabular-nums">${score}</span>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            roundScoresContainer.innerHTML = '<p class="text-white/30 text-center py-4">暂无轮次得分数据</p>';
+        }
+
+        // 获取所有评委对该选手的评分明细
+        const supabase = getSupabase();
+        const { data: allScores, error } = await supabase
+            .from('scores')
+            .select('judge_id, score, round_id')
+            .eq('contestant_id', contestant.id)
+            .eq('event_id', currentEvent.id);
+
+        if (!error && allScores) {
+            // 计算每位评委的平均分
+            const judgeScoreMap = new Map();
+            allScores.forEach(score => {
+                if (!judgeScoreMap.has(score.judge_id)) {
+                    judgeScoreMap.set(score.judge_id, { total: 0, count: 0 });
+                }
+                const data = judgeScoreMap.get(score.judge_id);
+                data.total += score.score || 0;
+                data.count++;
+            });
+
+            // 显示评委评分明细
+            const judgeScoresContainer = document.getElementById('contestantFinalJudgeScores');
+            judgeScoresContainer.innerHTML = judges.map((judge, index) => {
+                const data = judgeScoreMap.get(judge.id);
+                const avgScore = data ? (data.total / data.count).toFixed(1) : null;
+                return `
+                    <div class="animate-scale-in text-center p-3 rounded-xl ${avgScore ? 'bg-white/10 border border-white/20' : 'bg-white/5 border border-white/5'}" style="animation-delay: ${index * 0.05}s">
+                        <div class="text-white/40 text-xs mb-1">评委 ${judge.judge_number}</div>
+                        <div class="font-bold text-lg ${avgScore ? 'text-white' : 'text-white/20'}">
+                            ${avgScore || '—'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 显示最终得分
+        const finalScore = contestantResult?.final_score || 0;
+        animateContestantFinalScore(finalScore);
+
+    } catch (error) {
+        console.error('加载选手最终结果失败:', error);
+        document.getElementById('contestantFinalRoundScores').innerHTML = '<p class="text-white/30 text-center py-4">加载失败</p>';
+    }
+}
+
+// 选手最终得分动画
+function animateContestantFinalScore(targetScore) {
+    const scoreElement = document.getElementById('contestantFinalTotalScore');
+    const duration = 2000;
+    const startTime = performance.now();
+    const startScore = 0;
+
+    function updateScore(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
         const easeProgress = 1 - Math.pow(1 - progress, 3);
         const currentScore = startScore + (targetScore - startScore) * easeProgress;
 

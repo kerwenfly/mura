@@ -1394,6 +1394,7 @@ async function toggleEventStatus(eventId, currentStatus) {
     try {
         await db.updateEvent(eventId, { status: newStatus });
         events = await db.getEvents();
+        updateEventDropdown();
         updateEventListContainer();
         updateEventStatus();
         showToast(newStatus === 'active' ? '活动已启用' : '活动已暂停', 'success');
@@ -1795,21 +1796,107 @@ function updateThemeSelection() {
 }
 
 async function updateScoreProgress() {
-    if (!currentEventId || !currentRoundId || !systemState?.current_contestant_id) {
+    if (!currentEventId || !systemState?.current_contestant_id) {
         return;
     }
     
     const contestantId = systemState.current_contestant_id;
+    const displayMode = systemState?.display_mode || 'waiting';
+    
+    const progressFill = document.getElementById('scoreProgressFill');
+    const progressText = document.getElementById('scoreProgressText');
+    const progressTitle = document.getElementById('scoreProgressTitle');
+    const scoresGrid = document.getElementById('judgeScoresGrid');
+    const progressSection = document.getElementById('scoreProgressSection');
+    
+    const contestant = contestants.find(c => c.id === contestantId);
+    
+    if (displayMode === 'contestant_final') {
+        progressTitle.textContent = `最终得分 — ${contestant ? contestant.name : '选手'}`;
+        
+        try {
+            const results = await db.getFinalResultsWithRounds(currentEventId);
+            const contestantResult = results?.find(r => r.contestant_id === contestantId);
+            
+            if (contestantResult && contestantResult.round_scores && contestantResult.round_scores.length > 0) {
+                scoresGrid.innerHTML = contestantResult.round_scores.map(rs => {
+                    const round = scoringRounds.find(r => r.id === rs.round_id);
+                    const roundName = round ? round.name : rs.round_name;
+                    const score = rs.score ? parseFloat(rs.score).toFixed(2) : '-';
+                    return `
+                        <div class="judge-score-item submitted">
+                            <span class="judge-number text-xs">${roundName}</span>
+                            <span class="judge-score-value submitted-value">
+                                ${score}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+                
+                const finalScore = contestantResult.final_score || 0;
+                progressFill.style.width = '100%';
+                progressText.textContent = finalScore.toFixed(2);
+            } else {
+                scoresGrid.innerHTML = '<p class="text-slate-500 text-center col-span-full py-4">暂无评分数据</p>';
+                progressFill.style.width = '0%';
+                progressText.textContent = '0.00';
+            }
+        } catch (error) {
+            console.error('更新最终得分失败:', error);
+            scoresGrid.innerHTML = '<p class="text-slate-500 text-center col-span-full py-4">加载失败</p>';
+        }
+        return;
+    }
+    
+    if (displayMode === 'result') {
+        const currentRound = scoringRounds.find(r => r.id === currentRoundId);
+        progressTitle.textContent = `本轮得分 — ${currentRound ? currentRound.name : '当前轮次'}`;
+        
+        if (!currentRoundId) {
+            scoresGrid.innerHTML = '<p class="text-slate-500 text-center col-span-full py-4">暂无评分数据</p>';
+            progressFill.style.width = '0%';
+            progressText.textContent = '0.00';
+            return;
+        }
+        
+        try {
+            const scores = await db.getScoresByContestant(contestantId, currentRoundId);
+            
+            scoresGrid.innerHTML = judges.map(judge => {
+                const score = scores.find(s => s.judge_id === judge.id);
+                const hasScore = score && score.score !== null;
+                
+                return `
+                    <div class="judge-score-item ${hasScore ? 'submitted' : 'pending'}">
+                        <span class="judge-number">${judge.judge_number}</span>
+                        <span class="judge-score-value ${hasScore ? 'submitted-value' : 'pending-value'}">
+                            ${hasScore ? parseFloat(score.score).toFixed(1) : '—'}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+            
+            const roundResults = await db.getRoundResults(currentRoundId);
+            const contestantResult = roundResults?.find(r => r.contestant_id === contestantId);
+            const roundScore = contestantResult?.round_score || 0;
+            
+            progressFill.style.width = '100%';
+            progressText.textContent = roundScore.toFixed(2);
+        } catch (error) {
+            console.error('更新本轮得分失败:', error);
+            scoresGrid.innerHTML = '<p class="text-slate-500 text-center col-span-full py-4">加载失败</p>';
+        }
+        return;
+    }
+    
+    if (!currentRoundId) {
+        return;
+    }
     
     try {
         const scores = await db.getScoresByContestant(contestantId, currentRoundId);
         const submittedCount = scores.filter(s => s.score !== null).length;
         const totalCount = judges.length;
-        
-        const progressFill = document.getElementById('scoreProgressFill');
-        const progressText = document.getElementById('scoreProgressText');
-        const progressTitle = document.getElementById('scoreProgressTitle');
-        const scoresGrid = document.getElementById('judgeScoresGrid');
         
         const currentRound = scoringRounds.find(r => r.id === currentRoundId);
         progressTitle.textContent = `评分进度 — ${currentRound ? currentRound.name : '当前轮次'}`;
@@ -2161,3 +2248,324 @@ window.loadDataResults = loadDataResults;
 window.loadJudgeDetailResults = loadJudgeDetailResults;
 window.exportToXlsx = exportToXlsx;
 window.exportJudgeDetailsXlsx = exportJudgeDetailsXlsx;
+
+// 选手模板下载
+function downloadContestantTemplate() {
+    const headers = ['编号', '姓名', '部门/单位', '简介'];
+    const exampleData = [
+        [1, '张三', '技术部', '资深工程师'],
+        [2, '李四', '市场部', '市场经理'],
+        [3, '王五', '产品部', '产品设计师']
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleData]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '选手信息');
+    
+    ws['!cols'] = [
+        { wch: 8 },
+        { wch: 15 },
+        { wch: 20 },
+        { wch: 30 }
+    ];
+    
+    XLSX.writeFile(wb, '选手导入模板.xlsx');
+    showToast('模板下载成功', 'success');
+}
+
+// 评委模板下载
+function downloadJudgeTemplate() {
+    const groupNames = judgeGroups.length > 0 
+        ? judgeGroups.map(g => g.name).join('/') 
+        : '分组1/分组2';
+    
+    const headers = ['用户名', '密码', '评委编号', '评委分组'];
+    const exampleData = [
+        ['judge1', '123456', 1, judgeGroups.length > 0 ? judgeGroups[0].name : '分组1'],
+        ['judge2', '123456', 2, judgeGroups.length > 0 ? judgeGroups[0].name : '分组1'],
+        ['judge3', '123456', 3, judgeGroups.length > 1 ? judgeGroups[1].name : '分组2']
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleData]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '评委信息');
+    
+    ws['!cols'] = [
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 10 },
+        { wch: 15 }
+    ];
+    
+    XLSX.writeFile(wb, '评委导入模板.xlsx');
+    showToast('模板下载成功', 'success');
+}
+
+// 选手导入处理
+async function handleContestantImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!currentEventId) {
+        showToast('请先选择活动', 'error');
+        event.target.value = '';
+        return;
+    }
+    
+    try {
+        const data = await readExcelFile(file);
+        const result = validateContestantData(data);
+        
+        if (result.errors.length > 0) {
+            showToast(`数据校验失败: ${result.errors[0]}`, 'error');
+            event.target.value = '';
+            return;
+        }
+        
+        await importContestants(result.validData);
+        showToast(`成功导入 ${result.validData.length} 名选手`, 'success');
+        
+        contestants = await db.getContestants(currentEventId);
+        updateUI();
+    } catch (error) {
+        showToast(error.message || '导入失败', 'error');
+    }
+    
+    event.target.value = '';
+}
+
+// 评委导入处理
+async function handleJudgeImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!currentEventId) {
+        showToast('请先选择活动', 'error');
+        event.target.value = '';
+        return;
+    }
+    
+    if (judgeGroups.length === 0) {
+        showToast('请先创建评委分组', 'error');
+        event.target.value = '';
+        return;
+    }
+    
+    try {
+        const data = await readExcelFile(file);
+        const result = validateJudgeData(data);
+        
+        if (result.errors.length > 0) {
+            showToast(`数据校验失败: ${result.errors[0]}`, 'error');
+            event.target.value = '';
+            return;
+        }
+        
+        await importJudges(result.validData);
+        showToast(`成功导入 ${result.validData.length} 名评委`, 'success');
+        
+        judges = await db.getJudges(currentEventId);
+        updateUI();
+    } catch (error) {
+        showToast(error.message || '导入失败', 'error');
+    }
+    
+    event.target.value = '';
+}
+
+// 读取Excel文件
+function readExcelFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                resolve(jsonData);
+            } catch (error) {
+                reject(new Error('文件解析失败'));
+            }
+        };
+        reader.onerror = function() {
+            reject(new Error('文件读取失败'));
+        };
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// 校验选手数据
+function validateContestantData(data) {
+    const errors = [];
+    const validData = [];
+    const numbers = new Set();
+    
+    const existingNumbers = new Set(contestants.map(c => c.number));
+    
+    if (data.length < 2) {
+        errors.push('文件为空或格式不正确');
+        return { errors, validData };
+    }
+    
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const rowNum = i + 1;
+        
+        if (!row || row.length === 0 || row.every(cell => !cell)) {
+            continue;
+        }
+        
+        const number = parseInt(row[0]);
+        const name = String(row[1] || '').trim();
+        const department = String(row[2] || '').trim();
+        const description = String(row[3] || '').trim();
+        
+        if (isNaN(number) || number < 1) {
+            errors.push(`第${rowNum}行: 编号必须为正整数`);
+            continue;
+        }
+        
+        if (!name) {
+            errors.push(`第${rowNum}行: 姓名不能为空`);
+            continue;
+        }
+        
+        if (numbers.has(number)) {
+            errors.push(`第${rowNum}行: 编号 ${number} 在文件中重复`);
+            continue;
+        }
+        
+        if (existingNumbers.has(number)) {
+            errors.push(`第${rowNum}行: 编号 ${number} 已存在`);
+            continue;
+        }
+        
+        numbers.add(number);
+        validData.push({
+            number,
+            name,
+            department,
+            description,
+            avatar_url: null,
+            event_id: currentEventId,
+            order_index: contestants.length + validData.length + 1
+        });
+    }
+    
+    if (validData.length === 0 && errors.length === 0) {
+        errors.push('没有有效的数据行');
+    }
+    
+    return { errors, validData };
+}
+
+// 校验评委数据
+function validateJudgeData(data) {
+    const errors = [];
+    const validData = [];
+    const usernames = new Set();
+    const numbers = new Set();
+    
+    const existingUsernames = new Set(judges.map(j => j.username));
+    const existingNumbers = new Set(judges.map(j => j.judge_number));
+    const groupMap = new Map(judgeGroups.map(g => [g.name, g.id]));
+    
+    if (data.length < 2) {
+        errors.push('文件为空或格式不正确');
+        return { errors, validData };
+    }
+    
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const rowNum = i + 1;
+        
+        if (!row || row.length === 0 || row.every(cell => !cell)) {
+            continue;
+        }
+        
+        const username = String(row[0] || '').trim();
+        const password = String(row[1] || '').trim();
+        const judgeNumber = parseInt(row[2]);
+        const groupName = String(row[3] || '').trim();
+        
+        if (!username) {
+            errors.push(`第${rowNum}行: 用户名不能为空`);
+            continue;
+        }
+        
+        if (!password) {
+            errors.push(`第${rowNum}行: 密码不能为空`);
+            continue;
+        }
+        
+        if (isNaN(judgeNumber) || judgeNumber < 1) {
+            errors.push(`第${rowNum}行: 评委编号必须为正整数`);
+            continue;
+        }
+        
+        if (usernames.has(username)) {
+            errors.push(`第${rowNum}行: 用户名 "${username}" 在文件中重复`);
+            continue;
+        }
+        
+        if (existingUsernames.has(username)) {
+            errors.push(`第${rowNum}行: 用户名 "${username}" 已存在`);
+            continue;
+        }
+        
+        if (numbers.has(judgeNumber)) {
+            errors.push(`第${rowNum}行: 评委编号 ${judgeNumber} 在文件中重复`);
+            continue;
+        }
+        
+        if (existingNumbers.has(judgeNumber)) {
+            errors.push(`第${rowNum}行: 评委编号 ${judgeNumber} 已存在`);
+            continue;
+        }
+        
+        let groupId = null;
+        if (groupName) {
+            groupId = groupMap.get(groupName);
+            if (!groupId) {
+                errors.push(`第${rowNum}行: 评委分组 "${groupName}" 不存在`);
+                continue;
+            }
+        }
+        
+        usernames.add(username);
+        numbers.add(judgeNumber);
+        validData.push({
+            username,
+            password,
+            judge_number: judgeNumber,
+            group_id: groupId,
+            event_id: currentEventId
+        });
+    }
+    
+    if (validData.length === 0 && errors.length === 0) {
+        errors.push('没有有效的数据行');
+    }
+    
+    return { errors, validData };
+}
+
+// 导入选手到数据库
+async function importContestants(contestantList) {
+    for (const contestant of contestantList) {
+        await db.createContestant(contestant);
+    }
+}
+
+// 导入评委到数据库
+async function importJudges(judgeList) {
+    for (const judge of judgeList) {
+        await db.createJudge(judge);
+    }
+}
+
+window.downloadContestantTemplate = downloadContestantTemplate;
+window.downloadJudgeTemplate = downloadJudgeTemplate;
+window.handleContestantImport = handleContestantImport;
+window.handleJudgeImport = handleJudgeImport;
