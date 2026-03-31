@@ -1497,6 +1497,16 @@ body {
     background: var(--border);
 }
 
+/* 隐藏滚动条但保持滚动功能 */
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
 /* 选择框样式 */
 select.form-select {
     appearance: none;

@@ -11,6 +11,13 @@ let subscriptions = [];
 let currentTheme = 1;
 let isFullscreen = false;
 
+// 排名滚动相关
+let rankingScrollInterval = null;
+let rankingScrollPaused = false;
+
+// 评委评分滚动相关
+let judgeScoresScrollInterval = null;
+
 // 初始化页面
 document.addEventListener('DOMContentLoaded', async () => {
     await initPage();
@@ -28,6 +35,9 @@ function setupEventListeners() {
 
     // 返回按钮
     document.getElementById('backBtn').addEventListener('click', () => {
+        // 停止排名滚动
+        stopRankingScroll();
+
         // 清理订阅
         subscriptions.forEach(sub => sub?.unsubscribe?.());
         subscriptions = [];
@@ -68,8 +78,8 @@ function applyBackgroundTheme(theme, mode) {
 
     // 根据模式选择背景图
     let bgSuffix = '-1.jpg'; // 等待状态
-    if (mode === 'scoring' || mode === 'result' || mode === 'final') {
-        bgSuffix = '-2.jpg'; // 评分中/结果/排名状态
+    if (mode === 'scoring' || mode === 'result' || mode === 'contestant_final' || mode === 'final') {
+        bgSuffix = '-2.jpg'; // 评分中/结果/最终结果/排名状态
     }
 
     document.body.style.backgroundImage = `url('img/${themeNum}${bgSuffix}')`;
@@ -179,6 +189,9 @@ function updateRoundBadge() {
 // 更新显示模式
 function updateDisplayMode() {
     const mode = systemState?.display_mode || 'waiting';
+
+    // 停止排名滚动
+    stopRankingScroll();
 
     // 隐藏所有模式
     document.getElementById('waitingMode').classList.add('hidden');
@@ -521,7 +534,7 @@ async function showContestantFinalMode() {
                 const data = judgeScoreMap.get(judge.id);
                 const avgScore = data ? (data.total / data.count).toFixed(1) : null;
                 return `
-                    <div class="animate-scale-in text-center p-3 rounded-xl ${avgScore ? 'bg-white/10 border border-white/20' : 'bg-white/5 border border-white/5'}" style="animation-delay: ${index * 0.05}s">
+                    <div class="animate-scale-in text-center p-3 rounded-xl flex-shrink-0 w-20 ${avgScore ? 'bg-white/10 border border-white/20' : 'bg-white/5 border border-white/5'}" style="animation-delay: ${index * 0.05}s">
                         <div class="text-white/40 text-xs mb-1">评委 ${judge.judge_number}</div>
                         <div class="font-bold text-lg ${avgScore ? 'text-white' : 'text-white/20'}">
                             ${avgScore || '—'}
@@ -529,6 +542,10 @@ async function showContestantFinalMode() {
                     </div>
                 `;
             }).join('');
+
+            setTimeout(() => {
+                startJudgeScoresScroll();
+            }, judges.length * 50 + 500);
         }
 
         // 显示最终得分
@@ -624,7 +641,7 @@ async function showFinalMode() {
                 : `<span class="text-sm font-bold">${getInitials(result.name)}</span>`;
 
             return `
-                <div class="animate-slide-in flex items-center gap-4 rounded-2xl px-4 py-3 border ${rankStyle}" style="animation-delay: ${index * 0.08}s">
+                <div class="ranking-item animate-slide-in flex items-center gap-4 rounded-2xl px-4 py-3 border ${rankStyle}" style="animation-delay: ${index * 0.08}s">
                     <!-- 排名 -->
                     <div class="w-10 text-center shrink-0">
                         ${medal ? `<span class="text-2xl">${medal}</span>` : `<span class="text-white/30 font-bold text-lg">${rank}</span>`}
@@ -655,6 +672,9 @@ async function showFinalMode() {
                 </div>
             `;
         }).join('');
+
+        // 启动自动滚动
+        startRankingScroll();
     } catch (error) {
         console.error('加载最终排名失败:', error);
         document.getElementById('rankingList').innerHTML = '<p class="text-white/30 text-center py-8">加载失败</p>';
@@ -710,6 +730,120 @@ function getInitials(name) {
         .join('')
         .toUpperCase()
         .slice(0, 2);
+}
+
+// 启动排名自动滚动
+function startRankingScroll() {
+    // 先停止之前的滚动
+    stopRankingScroll();
+
+    // 延迟执行，确保DOM已完全渲染
+    setTimeout(() => {
+        doStartRankingScroll();
+    }, 500);
+}
+
+// 实际执行滚动
+function doStartRankingScroll() {
+    const wrapper = document.getElementById('rankingListWrapper');
+    const list = document.getElementById('rankingList');
+    if (!wrapper || !list) return;
+
+    // 检查是否需要滚动（内容高度是否超过容器高度）
+    const wrapperHeight = wrapper.clientHeight;
+    const listHeight = list.scrollHeight;
+
+    console.log('滚动检测:', { wrapperHeight, listHeight, needScroll: listHeight > wrapperHeight });
+
+    // 如果内容高度不超过容器高度，不需要滚动
+    if (listHeight <= wrapperHeight) {
+        return;
+    }
+
+    // 滚动配置
+    const scrollStep = 2; // 每次滚动的像素
+    const scrollInterval = 100; // 滚动间隔（毫秒）
+    const pauseDuration = 3000; // 滚动到底部后的暂停时间（毫秒）
+
+    let pauseTimeout = null;
+    let isPausedAtBottom = false;
+
+    // 开始滚动
+    rankingScrollInterval = setInterval(() => {
+        if (rankingScrollPaused) return;
+
+        // 如果正在底部暂停，跳过
+        if (isPausedAtBottom) return;
+
+        // 向下滚动
+        wrapper.scrollTop += scrollStep;
+
+        // 检查是否滚动到底部
+        if (wrapper.scrollTop + wrapperHeight >= listHeight - 10) {
+            isPausedAtBottom = true;
+            // 暂停后回到顶部
+            pauseTimeout = setTimeout(() => {
+                wrapper.scrollTop = 0;
+                isPausedAtBottom = false;
+                pauseTimeout = null;
+            }, pauseDuration);
+        }
+    }, scrollInterval);
+}
+
+// 停止排名滚动
+function stopRankingScroll() {
+    if (rankingScrollInterval) {
+        clearInterval(rankingScrollInterval);
+        rankingScrollInterval = null;
+    }
+    rankingScrollPaused = false;
+}
+
+// 启动评委评分滚动
+function startJudgeScoresScroll() {
+    stopJudgeScoresScroll();
+    
+    const wrapper = document.getElementById('judgeScoresWrapper');
+    const list = document.getElementById('contestantFinalJudgeScores');
+    if (!wrapper || !list) return;
+
+    const wrapperWidth = wrapper.clientWidth;
+    const listWidth = list.scrollWidth;
+
+    if (listWidth <= wrapperWidth) {
+        return;
+    }
+
+    const scrollStep = 1;
+    const scrollInterval = 50;
+    const pauseDuration = 2000;
+
+    let pauseTimeout = null;
+    let isPausedAtEnd = false;
+
+    judgeScoresScrollInterval = setInterval(() => {
+        if (isPausedAtEnd) return;
+
+        wrapper.scrollLeft += scrollStep;
+
+        if (wrapper.scrollLeft + wrapperWidth >= listWidth - 10) {
+            isPausedAtEnd = true;
+            pauseTimeout = setTimeout(() => {
+                wrapper.scrollLeft = 0;
+                isPausedAtEnd = false;
+                pauseTimeout = null;
+            }, pauseDuration);
+        }
+    }, scrollInterval);
+}
+
+// 停止评委评分滚动
+function stopJudgeScoresScroll() {
+    if (judgeScoresScrollInterval) {
+        clearInterval(judgeScoresScrollInterval);
+        judgeScoresScrollInterval = null;
+    }
 }
 
 // 暴露全局函数

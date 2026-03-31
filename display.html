@@ -95,6 +95,43 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        /* 排名列表滚动容器 */
+        #displaySection {
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+        }
+
+        #finalMode {
+            position: relative;
+            overflow: hidden;
+        }
+
+        #finalMode .ranking-header {
+            flex-shrink: 0;
+        }
+
+        #rankingListWrapper {
+            flex: 1 1 0%;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        #rankingList {
+            scroll-behavior: smooth;
+            width: 100%;
+            max-width: 48rem;
+        }
+
+        /* 滚动时的过渡效果 */
+        .ranking-item {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-slate-950">
@@ -178,7 +215,7 @@
                 <div id="scoringRoundTag" class="hidden inline-block bg-blue-500/20 border border-blue-500/40 text-blue-300 text-sm px-4 py-1.5 rounded-full mb-6"></div>
 
                 <!-- 选手头像 -->
-                <div id="scoringAvatar" class="w-28 h-28 rounded-full overflow-hidden mx-auto mb-6 ring-4 ring-white/20 shadow-2xl flex items-center justify-center bg-slate-700 text-white text-4xl font-black">
+                <div id="scoringAvatar" class="w-32 h-32 rounded-2xl overflow-hidden mx-auto mb-6 ring-4 ring-white/20 shadow-2xl flex items-center justify-center bg-slate-700 text-white text-4xl font-black">
                     <svg class="w-12 h-12 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
@@ -258,26 +295,32 @@
                 <!-- 评委评分明细 -->
                 <div class="bg-white/5 border border-white/10 rounded-2xl p-5 mb-8">
                     <h3 class="text-white/60 text-sm mb-4 font-medium">评委评分明细</h3>
-                    <div id="contestantFinalJudgeScores" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                        <!-- 评委评分将动态加载 -->
+                    <div id="judgeScoresWrapper" class="overflow-x-auto hide-scrollbar">
+                        <div id="contestantFinalJudgeScores" class="flex gap-2" style="min-width: max-content;">
+                             <!-- 评委评分将动态加载 -->
+                        </div>
                     </div>
                 </div>
-
+                
                 <!-- 最终得分 -->
-                <div class="text-center bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-3xl p-8">
-                    <div class="text-amber-400/60 text-sm mb-2 uppercase tracking-widest">最终得分</div>
-                    <div id="contestantFinalTotalScore" class="display-score font-black text-amber-400 tabular-nums leading-none">0.00</div>
+                <div class="text-center bg-white/5 border border-white/10 rounded-3xl p-8">
+                    <div class="text-white/40 text-sm mb-2 uppercase tracking-widest">最终得分</div>
+                    <div id="contestantFinalTotalScore" class="display-score font-black text-white tabular-nums leading-none">0.00</div>
                 </div>
             </div>
         </div>
 
         <!-- 最终排名模式 -->
-        <div id="finalMode" class="hidden flex flex-col items-center flex-1 px-4 py-6 overflow-auto hide-scrollbar">
-            <h1 class="display-title font-black text-white mb-1 text-center">最终排名</h1>
-            <p id="finalEventName" class="text-white/40 mb-8 text-center"></p>
+        <div id="finalMode" class="hidden flex flex-col items-center flex-1 px-4 py-6">
+            <div class="ranking-header text-center mb-6">
+                <h1 class="display-title font-black text-white mb-1">最终排名</h1>
+                <p id="finalEventName" class="text-white/40"></p>
+            </div>
 
-            <div id="rankingList" class="w-full max-w-3xl space-y-2">
-                <!-- 排名列表将动态加载 -->
+            <div id="rankingListWrapper" class="hide-scrollbar">
+                <div id="rankingList" class="space-y-2">
+                    <!-- 排名列表将动态加载 -->
+                </div>
             </div>
         </div>
     </div>
