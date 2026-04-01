@@ -292,6 +292,7 @@ function switchTab(tabName) {
 
     if (tabName === 'data') {
         updateDataRoundSelect();
+        updateJudgeDetailRoundSelect();
         loadDataResults();
         loadJudgeDetailResults();
     }
@@ -472,12 +473,12 @@ function updateContestantListSettings() {
         return `
             <div class="flex items-center justify-between p-3 rounded-lg">
                 <div class="flex items-center gap-3">
+                    <span class="badge badge-primary">${contestant.number}</span>
                     ${avatarHtml}
                     <div>
                         <div class="font-medium text-white">${contestant.name}</div>
                         <div class="text-slate-500 text-sm">${contestant.department || ''}</div>
                     </div>
-                    <span class="badge badge-primary">${contestant.number}</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <button class="btn btn-secondary btn-sm" onclick="editContestant('${contestant.id}')" title="编辑">
@@ -2059,23 +2060,34 @@ async function loadDataResults() {
     }
 }
 
+function updateJudgeDetailRoundSelect() {
+    const select = document.getElementById('judgeDetailRoundSelect');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="all">全部轮次</option>' +
+        scoringRounds.map(round => `<option value="${round.id}">${round.name}</option>`).join('');
+}
+
 async function loadJudgeDetailResults() {
     const header = document.getElementById('judgeDetailHeader');
     const tbody = document.getElementById('judgeDetailBody');
+    const roundSelect = document.getElementById('judgeDetailRoundSelect');
+    const selectedRoundId = roundSelect ? roundSelect.value : 'all';
     
     if (!currentEventId) {
-        header.innerHTML = '<th>编号</th><th>选手姓名</th>';
-        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-slate-500 py-8">请先选择活动</td></tr>';
+        header.innerHTML = '<th>轮次</th><th>编号</th><th>选手姓名</th>';
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-slate-500 py-8">请先选择活动</td></tr>';
         return;
     }
     
     if (contestants.length === 0 || judges.length === 0) {
-        header.innerHTML = '<th>编号</th><th>选手姓名</th>';
-        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-slate-500 py-8">暂无数据</td></tr>';
+        header.innerHTML = '<th>轮次</th><th>编号</th><th>选手姓名</th>';
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-slate-500 py-8">暂无数据</td></tr>';
         return;
     }
     
     header.innerHTML = `
+        <th>轮次</th>
         <th>编号</th>
         <th>选手姓名</th>
         ${judges.map(j => `<th class="text-center">评委${j.judge_number}</th>`).join('')}
@@ -2091,38 +2103,57 @@ async function loadJudgeDetailResults() {
         
         if (error) throw error;
         
-        tbody.innerHTML = contestants.map(contestant => {
-            const contestantScores = allScores.filter(s => s.contestant_id === contestant.id);
-            
-            let totalScore = 0;
-            let scoreCount = 0;
-            
-            const judgeCells = judges.map(judge => {
-                const scores = contestantScores.filter(s => s.judge_id === judge.id);
-                if (scores.length > 0) {
-                    const avgScore = scores.reduce((sum, s) => sum + (s.score || 0), 0) / scores.length;
-                    totalScore += avgScore;
-                    scoreCount++;
-                    return `<td class="text-center score-cell">${avgScore.toFixed(1)}</td>`;
-                }
-                return '<td class="text-center text-slate-600">-</td>';
-            }).join('');
-            
-            const avgScore = scoreCount > 0 ? (totalScore / scoreCount).toFixed(2) : '-';
-            
-            return `
-                <tr>
-                    <td>#${contestant.number}</td>
-                    <td class="font-medium">${contestant.name}</td>
-                    ${judgeCells}
-                    <td class="text-center score-cell text-emerald-400">${avgScore}</td>
-                </tr>
-            `;
-        }).join('');
+        const roundsToDisplay = selectedRoundId === 'all' 
+            ? scoringRounds 
+            : scoringRounds.filter(r => r.id === selectedRoundId);
+        
+        if (roundsToDisplay.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-slate-500 py-8">暂无评分轮次</td></tr>';
+            return;
+        }
+        
+        const rows = [];
+        
+        roundsToDisplay.forEach(round => {
+            contestants.forEach(contestant => {
+                const contestantScores = allScores.filter(
+                    s => s.contestant_id === contestant.id && s.round_id === round.id
+                );
+                
+                let totalScore = 0;
+                let scoreCount = 0;
+                
+                const judgeCells = judges.map(judge => {
+                    const score = contestantScores.find(s => s.judge_id === judge.id);
+                    if (score && score.score !== null) {
+                        totalScore += score.score;
+                        scoreCount++;
+                        return `<td class="text-center score-cell">${parseFloat(score.score).toFixed(1)}</td>`;
+                    }
+                    return '<td class="text-center text-slate-600">-</td>';
+                }).join('');
+                
+                const avgScore = scoreCount > 0 ? (totalScore / scoreCount).toFixed(2) : '-';
+                
+                rows.push(`
+                    <tr>
+                        <td class="text-slate-400">${round.name}</td>
+                        <td>#${contestant.number}</td>
+                        <td class="font-medium">${contestant.name}</td>
+                        ${judgeCells}
+                        <td class="text-center score-cell text-emerald-400">${avgScore}</td>
+                    </tr>
+                `);
+            });
+        });
+        
+        tbody.innerHTML = rows.length > 0 
+            ? rows.join('') 
+            : '<tr><td colspan="3" class="text-center text-slate-500 py-8">暂无评分数据</td></tr>';
         
     } catch (error) {
         console.error('加载评委明细失败:', error);
-        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-slate-500 py-8">加载失败</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-slate-500 py-8">加载失败</td></tr>';
     }
 }
 
@@ -2198,6 +2229,9 @@ async function exportJudgeDetailsXlsx() {
         return;
     }
     
+    const roundSelect = document.getElementById('judgeDetailRoundSelect');
+    const selectedRoundId = roundSelect ? roundSelect.value : 'all';
+    
     try {
         const supabase = getSupabase();
         const { data: allScores, error } = await supabase
@@ -2210,29 +2244,48 @@ async function exportJudgeDetailsXlsx() {
         const event = events.find(e => e.id === currentEventId);
         const eventName = event ? event.name : '评分结果';
         
-        const headers = ['编号', '选手姓名', ...judges.map(j => `评委${j.judge_number}`), '平均分'];
+        const roundsToExport = selectedRoundId === 'all' 
+            ? scoringRounds 
+            : scoringRounds.filter(r => r.id === selectedRoundId);
         
-        const data = contestants.map(contestant => {
-            const contestantScores = allScores.filter(s => s.contestant_id === contestant.id);
-            
-            let totalScore = 0;
-            let scoreCount = 0;
-            
-            const judgeScores = judges.map(judge => {
-                const scores = contestantScores.filter(s => s.judge_id === judge.id);
-                if (scores.length > 0) {
-                    const avgScore = scores.reduce((sum, s) => sum + (s.score || 0), 0) / scores.length;
-                    totalScore += avgScore;
-                    scoreCount++;
-                    return parseFloat(avgScore.toFixed(1));
-                }
-                return '';
+        if (roundsToExport.length === 0) {
+            showToast('暂无评分轮次', 'error');
+            return;
+        }
+        
+        const headers = ['轮次', '编号', '选手姓名', ...judges.map(j => `评委${j.judge_number}`), '平均分'];
+        
+        const data = [];
+        
+        roundsToExport.forEach(round => {
+            contestants.forEach(contestant => {
+                const contestantScores = allScores.filter(
+                    s => s.contestant_id === contestant.id && s.round_id === round.id
+                );
+                
+                let totalScore = 0;
+                let scoreCount = 0;
+                
+                const judgeScores = judges.map(judge => {
+                    const score = contestantScores.find(s => s.judge_id === judge.id);
+                    if (score && score.score !== null) {
+                        totalScore += score.score;
+                        scoreCount++;
+                        return parseFloat(score.score.toFixed(1));
+                    }
+                    return '';
+                });
+                
+                const avgScore = scoreCount > 0 ? parseFloat((totalScore / scoreCount).toFixed(2)) : '';
+                
+                data.push([round.name, contestant.number, contestant.name, ...judgeScores, avgScore]);
             });
-            
-            const avgScore = scoreCount > 0 ? parseFloat((totalScore / scoreCount).toFixed(2)) : '';
-            
-            return [contestant.number, contestant.name, ...judgeScores, avgScore];
         });
+        
+        if (data.length === 0) {
+            showToast('暂无数据可导出', 'error');
+            return;
+        }
         
         const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const wb = XLSX.utils.book_new();
@@ -2248,7 +2301,8 @@ async function exportJudgeDetailsXlsx() {
         });
         ws['!cols'] = colWidths;
         
-        XLSX.writeFile(wb, `${eventName}_评委评分明细.xlsx`);
+        const roundSuffix = selectedRoundId === 'all' ? '' : `_${roundsToExport[0].name}`;
+        XLSX.writeFile(wb, `${eventName}${roundSuffix}_评委评分明细.xlsx`);
         showToast('导出成功', 'success');
         
     } catch (error) {

@@ -462,14 +462,19 @@
                         <div class="flex items-center justify-between w-full">
                             <div>
                                 <h3 class="new-card-title">评委评分明细</h3>
-                                <p class="new-card-subtitle">每位评委对各选手的评分详情</p>
+                                <p class="new-card-subtitle">每个轮次每位评委的评分详情</p>
                             </div>
-                            <button class="btn btn-primary btn-sm" onclick="exportJudgeDetailsXlsx()">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                导出Excel
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <select id="judgeDetailRoundSelect" class="form-select text-sm" onchange="loadJudgeDetailResults()">
+                                    <option value="all">全部轮次</option>
+                                </select>
+                                <button class="btn btn-primary btn-sm" onclick="exportJudgeDetailsXlsx()">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    导出Excel
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="new-card-body" style="border-top: 1px solid rgba(30, 41, 59, 0.5); padding: 0;">
@@ -477,13 +482,14 @@
                             <table class="data-table">
                                 <thead>
                                     <tr id="judgeDetailHeader">
+                                        <th>轮次</th>
                                         <th>编号</th>
                                         <th>选手姓名</th>
                                     </tr>
                                 </thead>
                                 <tbody id="judgeDetailBody">
                                     <tr>
-                                        <td colspan="2" class="text-center text-slate-500 py-8">请先选择活动</td>
+                                        <td colspan="3" class="text-center text-slate-500 py-8">请先选择活动</td>
                                     </tr>
                                 </tbody>
                             </table>
