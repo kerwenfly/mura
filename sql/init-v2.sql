@@ -200,6 +200,52 @@ CREATE TRIGGER trigger_create_default_group_and_round
     FOR EACH ROW
     EXECUTE FUNCTION create_default_judge_group_and_round();
 
+-- 评委提交分数验证触发器
+CREATE OR REPLACE FUNCTION validate_score_submission()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_current_contestant_id UUID;
+    v_current_round_id UUID;
+    v_is_locked BOOLEAN;
+BEGIN
+    -- 获取系统状态中的当前选手、当前轮次和锁定状态
+    SELECT 
+        current_contestant_id, 
+        current_round_id,
+        is_locked
+    INTO 
+        v_current_contestant_id, 
+        v_current_round_id,
+        v_is_locked
+    FROM system_state 
+    WHERE id = 1;
+    
+    -- 检查系统是否已锁定
+    IF v_is_locked THEN
+        RAISE EXCEPTION '评分已锁定,无法提交分数';
+    END IF;
+    
+    -- 验证选手ID是否匹配
+    IF NEW.contestant_id IS DISTINCT FROM v_current_contestant_id THEN
+        RAISE EXCEPTION '提交失败: 当前选手不匹配。请刷新页面获取最新状态';
+    END IF;
+    
+    -- 验证轮次ID是否匹配
+    IF NEW.round_id IS DISTINCT FROM v_current_round_id THEN
+        RAISE EXCEPTION '提交失败: 当前轮次不匹配。请刷新页面获取最新状态';
+    END IF;
+    
+    -- 验证通过,允许插入/更新
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_validate_score_submission ON scores;
+CREATE TRIGGER trigger_validate_score_submission
+    BEFORE INSERT OR UPDATE ON scores
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_score_submission();
+
 -- ============================================
 -- 5. 创建数据库函数
 -- ============================================

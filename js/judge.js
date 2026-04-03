@@ -534,7 +534,27 @@ async function handleSubmitScore() {
 
         await loadScoredList();
     } catch (error) {
-        showToast(error.message || '提交失败', 'error');
+        // 解析数据库错误信息并提供友好的提示
+        let errorMessage = '提交失败';
+        
+        if (error.message) {
+            if (error.message.includes('当前选手不匹配')) {
+                errorMessage = '当前选手已更换,请刷新页面';
+            } else if (error.message.includes('当前轮次不匹配')) {
+                errorMessage = '当前轮次已更换,请刷新页面';
+            } else if (error.message.includes('评分已锁定')) {
+                errorMessage = '评分已锁定,无法提交';
+            } else {
+                errorMessage = error.message;
+            }
+        }
+        
+        showToast(errorMessage, 'error');
+        
+        // 自动重新加载数据以同步最新状态
+        setTimeout(async () => {
+            await loadData();
+        }, 1500);
     } finally {
         submitBtn.disabled = systemState?.is_locked;
         submitBtn.textContent = '提交';
