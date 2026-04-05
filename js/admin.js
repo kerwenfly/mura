@@ -55,6 +55,7 @@ function initEventListeners() {
     });
     
     initThemeSettings();
+    initBasicSettings();
 }
 
 async function checkAuth() {
@@ -271,6 +272,7 @@ function updateUI() {
     updateRoundListControl();
     updateRoundListSettings();
     updateThemeSelection();
+    updateBasicSettingsUI();
     updateScoreProgress();
 }
 
@@ -307,6 +309,7 @@ function switchSettingsTab(tabName) {
     document.getElementById('settingsJudgesTab').classList.toggle('hidden', tabName !== 'judges');
     document.getElementById('settingsRoundsTab').classList.toggle('hidden', tabName !== 'rounds');
     document.getElementById('settingsThemeTab').classList.toggle('hidden', tabName !== 'theme');
+    document.getElementById('settingsBasicTab').classList.toggle('hidden', tabName !== 'basic');
 }
 
 function updateDisplayModeRadios() {
@@ -1879,12 +1882,14 @@ async function updateScoreProgress() {
             scoresGrid.innerHTML = judges.map(judge => {
                 const score = scores.find(s => s.judge_id === judge.id);
                 const hasScore = score && score.score !== null;
+                const judgeDisplayMode = systemState?.judge_display_mode || 'number';
+                const judgeLabel = judgeDisplayMode === 'username' ? judge.username : `评委 ${judge.judge_number}`;
                 
                 return `
                     <div class="judge-score-item ${hasScore ? 'submitted' : 'pending'}">
-                        <span class="judge-number">${judge.judge_number}</span>
+                        <span class="judge-number">${judgeLabel}</span>
                         <span class="judge-score-value ${hasScore ? 'submitted-value' : 'pending-value'}">
-                            ${hasScore ? parseFloat(score.score).toFixed(1) : '—'}
+                            ${hasScore ? parseFloat(score.score).toFixed(2) : '—'}
                         </span>
                     </div>
                 `;
@@ -1922,12 +1927,14 @@ async function updateScoreProgress() {
         scoresGrid.innerHTML = judges.map(judge => {
             const score = scores.find(s => s.judge_id === judge.id);
             const hasScore = score && score.score !== null;
+            const judgeDisplayMode = systemState?.judge_display_mode || 'number';
+            const judgeLabel = judgeDisplayMode === 'username' ? judge.username : `评委 ${judge.judge_number}`;
             
             return `
                 <div class="judge-score-item ${hasScore ? 'submitted' : 'pending'}">
-                    <span class="judge-number">${judge.judge_number}</span>
+                    <span class="judge-number">${judgeLabel}</span>
                     <span class="judge-score-value ${hasScore ? 'submitted-value' : 'pending-value'}">
-                        ${hasScore ? parseFloat(score.score).toFixed(1) : '—'}
+                        ${hasScore ? parseFloat(score.score).toFixed(2) : '—'}
                     </span>
                 </div>
             `;
@@ -2128,7 +2135,7 @@ async function loadJudgeDetailResults() {
                     if (score && score.score !== null) {
                         totalScore += score.score;
                         scoreCount++;
-                        return `<td class="text-center score-cell">${parseFloat(score.score).toFixed(1)}</td>`;
+                        return `<td class="text-center score-cell">${parseFloat(score.score).toFixed(2)}</td>`;
                     }
                     return '<td class="text-center text-slate-600">-</td>';
                 }).join('');
@@ -2271,7 +2278,7 @@ async function exportJudgeDetailsXlsx() {
                     if (score && score.score !== null) {
                         totalScore += score.score;
                         scoreCount++;
-                        return parseFloat(score.score.toFixed(1));
+                        return parseFloat(score.score.toFixed(2));
                     }
                     return '';
                 });
@@ -2636,3 +2643,86 @@ window.downloadContestantTemplate = downloadContestantTemplate;
 window.downloadJudgeTemplate = downloadJudgeTemplate;
 window.handleContestantImport = handleContestantImport;
 window.handleJudgeImport = handleJudgeImport;
+
+// 基础设置功能
+let currentJudgeDisplayMode = 'number';
+let currentMaxScore = 100;
+
+function initBasicSettings() {
+    const radios = document.querySelectorAll('input[name="judgeDisplayMode"]');
+    const savedMode = systemState?.judge_display_mode || 'number';
+    
+    radios.forEach(radio => {
+        radio.checked = radio.value === savedMode;
+        radio.addEventListener('change', handleJudgeDisplayModeChange);
+    });
+    
+    currentJudgeDisplayMode = savedMode;
+    
+    const maxScoreInput = document.getElementById('maxScoreInput');
+    if (maxScoreInput) {
+        currentMaxScore = systemState?.max_score || 100;
+        maxScoreInput.value = currentMaxScore;
+        maxScoreInput.addEventListener('input', handleMaxScoreChange);
+    }
+    
+    document.getElementById('applyBasicSettingsBtn').addEventListener('click', applyBasicSettings);
+}
+
+function handleJudgeDisplayModeChange(e) {
+    currentJudgeDisplayMode = e.target.value;
+}
+
+function handleMaxScoreChange(e) {
+    let value = parseFloat(e.target.value);
+    if (isNaN(value) || value < 1) {
+        value = 1;
+    } else if (value > 9999.99) {
+        value = 9999.99;
+    }
+    currentMaxScore = value;
+}
+
+async function applyBasicSettings() {
+    try {
+        const maxScoreInput = document.getElementById('maxScoreInput');
+        let maxScore = parseFloat(maxScoreInput.value);
+        
+        if (isNaN(maxScore) || maxScore < 1) {
+            maxScore = 1;
+        } else if (maxScore > 9999.99) {
+            maxScore = 9999.99;
+        }
+        
+        currentMaxScore = maxScore;
+        maxScoreInput.value = maxScore;
+        
+        await db.updateSystemState({ 
+            judge_display_mode: currentJudgeDisplayMode,
+            max_score: maxScore
+        });
+        showToast('基础设置已保存', 'success');
+    } catch (error) {
+        showToast('保存设置失败', 'error');
+        console.error(error);
+    }
+}
+
+function updateBasicSettingsUI() {
+    const savedMode = systemState?.judge_display_mode || 'number';
+    currentJudgeDisplayMode = savedMode;
+    
+    const radios = document.querySelectorAll('input[name="judgeDisplayMode"]');
+    radios.forEach(radio => {
+        radio.checked = radio.value === savedMode;
+    });
+    
+    const maxScoreInput = document.getElementById('maxScoreInput');
+    if (maxScoreInput) {
+        currentMaxScore = systemState?.max_score || 100;
+        maxScoreInput.value = currentMaxScore;
+    }
+}
+
+window.initBasicSettings = initBasicSettings;
+window.applyBasicSettings = applyBasicSettings;

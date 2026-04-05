@@ -9,6 +9,7 @@ let systemState = null;
 let subscriptions = [];
 let scoreInput = '';
 let showPassword = false;
+let maxScore = 100;
 
 // 页面初始化
 document.addEventListener('DOMContentLoaded', async () => {
@@ -240,6 +241,8 @@ async function loadData() {
 
         systemState = state;
         scoringRounds = rounds;
+        
+        maxScore = state?.max_score || 100;
 
         // 获取当前轮次
         if (state.current_round_id) {
@@ -459,10 +462,10 @@ function validateAndUpdateScore() {
         score = 0;
     }
 
-    // 限制分数范围 0-100
-    if (score > 100) {
-        score = 100;
-        scoreInput = '100';
+    // 限制分数范围 0-maxScore
+    if (score > maxScore) {
+        score = maxScore;
+        scoreInput = maxScore.toString();
     }
 
     if (score < 0) {
@@ -490,7 +493,7 @@ function updateScoreDisplay() {
 function updateSubmitButton() {
     const submitBtn = document.getElementById('submitBtn');
     const score = parseFloat(scoreInput) || 0;
-    const isValid = score >= 0 && score <= 100 && currentContestant && currentRound && !systemState?.is_locked;
+    const isValid = score >= 0 && score <= maxScore && currentContestant && currentRound && !systemState?.is_locked;
 
     if (submitBtn) {
         submitBtn.disabled = !isValid;
@@ -502,8 +505,8 @@ async function handleSubmitScore() {
     if (!currentContestant || !currentJudge || !currentRound || systemState?.is_locked) return;
 
     const score = parseFloat(scoreInput) || 0;
-    if (score < 0 || score > 100) {
-        showToast('请输入有效的评分 (0-100)', 'error');
+    if (score < 0 || score > maxScore) {
+        showToast(`请输入有效的评分 (0-${maxScore})`, 'error');
         return;
     }
 
@@ -584,6 +587,12 @@ function subscribeToChanges() {
         const prevState = systemState;
         systemState = payload.new;
         updateLockStatus();
+        
+        // 检查 maxScore 是否变化
+        if (systemState.max_score !== prevState?.max_score) {
+            maxScore = systemState.max_score || 100;
+            validateAndUpdateScore();
+        }
 
         // 检查轮次是否变化
         if (systemState.current_round_id !== prevState?.current_round_id) {

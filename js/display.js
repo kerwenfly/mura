@@ -197,6 +197,7 @@ function updateDisplayMode() {
     document.getElementById('waitingMode').classList.add('hidden');
     document.getElementById('scoringMode').classList.add('hidden');
     document.getElementById('resultMode').classList.add('hidden');
+    document.getElementById('roundRankingMode').classList.add('hidden');
     document.getElementById('contestantFinalMode').classList.add('hidden');
     document.getElementById('finalMode').classList.add('hidden');
 
@@ -211,6 +212,7 @@ function updateDisplayMode() {
         waiting: '等待中',
         scoring: '评分中',
         result: '显示结果',
+        round_ranking: '轮次排名',
         contestant_final: '最终结果',
         final: '最终排名'
     };
@@ -234,6 +236,12 @@ function updateDisplayMode() {
             header.classList.remove('hidden');
             document.getElementById('resultMode').classList.remove('hidden');
             showResultMode();
+            break;
+
+        case 'round_ranking':
+            header.classList.remove('hidden');
+            document.getElementById('roundRankingMode').classList.remove('hidden');
+            showRoundRankingMode();
             break;
 
         case 'contestant_final':
@@ -352,6 +360,135 @@ async function showResultMode() {
     await updateResultDisplay(contestant);
 }
 
+// 显示轮次排名模式
+async function showRoundRankingMode() {
+    if (!currentRound) {
+        document.getElementById('roundRankingRoundName').textContent = '暂无当前轮次';
+        document.getElementById('roundRankingList').innerHTML = '<p class="text-white/30 text-center py-8">暂无轮次数据</p>';
+        return;
+    }
+
+    document.getElementById('roundRankingRoundName').textContent = currentRound.name;
+
+    try {
+        const roundResults = await db.getRoundResults(currentRound.id);
+        const rankingList = document.getElementById('roundRankingList');
+
+        if (!roundResults || roundResults.length === 0) {
+            rankingList.innerHTML = '<p class="text-white/30 text-center py-8">暂无排名数据</p>';
+            return;
+        }
+
+        const medals = ['🥇', '🥈', '🥉'];
+
+        rankingList.innerHTML = roundResults.map((result, index) => {
+            const rank = index + 1;
+            const medal = medals[index] || '';
+
+            const rankStyle = rank === 1
+                ? 'bg-gradient-to-r from-amber-900/40 to-yellow-900/30 border-amber-500/30'
+                : rank === 2
+                    ? 'bg-gradient-to-r from-slate-800/60 to-slate-700/30 border-slate-500/30'
+                    : rank === 3
+                        ? 'bg-gradient-to-r from-orange-900/30 to-amber-900/20 border-orange-500/20'
+                        : 'bg-white/5 border-white/5';
+
+            const scoreColor = rank === 1
+                ? 'text-amber-400'
+                : rank === 2
+                    ? 'text-slate-300'
+                    : rank === 3
+                        ? 'text-orange-400'
+                        : 'text-white';
+
+            const contestant = contestants.find(c => c.id === result.contestant_id);
+            const avatarHtml = contestant?.avatar_url
+                ? `<img src="${contestant.avatar_url}" alt="${result.name}" class="w-full h-full object-cover">`
+                : `<span class="text-sm font-bold">${getInitials(result.name)}</span>`;
+
+            return `
+                <div class="ranking-item animate-slide-in flex items-center gap-4 rounded-2xl px-4 py-3 border ${rankStyle}" style="animation-delay: ${index * 0.08}s">
+                    <div class="w-10 text-center shrink-0">
+                        ${medal ? `<span class="text-2xl">${medal}</span>` : `<span class="text-white/30 font-bold text-lg">${rank}</span>`}
+                    </div>
+                    <div class="w-10 h-10 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-slate-700 text-white">
+                        ${avatarHtml}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs text-white/30">#${result.contestant_number || '--'}</div>
+                        <div class="font-bold text-white truncate">${result.name}</div>
+                        <div class="text-xs text-white/40 truncate">${result.department || ''}</div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <div class="text-white/40 text-xs">得分</div>
+                        <div class="font-black text-xl tabular-nums ${scoreColor}">
+                            ${result.round_score.toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        startRoundRankingScroll();
+    } catch (error) {
+        console.error('加载轮次排名失败:', error);
+        document.getElementById('roundRankingList').innerHTML = '<p class="text-white/30 text-center py-8">加载失败</p>';
+    }
+}
+
+// 启动轮次排名滚动
+let roundRankingScrollInterval = null;
+
+function startRoundRankingScroll() {
+    stopRoundRankingScroll();
+
+    setTimeout(() => {
+        doStartRoundRankingScroll();
+    }, 500);
+}
+
+function doStartRoundRankingScroll() {
+    const wrapper = document.getElementById('roundRankingListWrapper');
+    const list = document.getElementById('roundRankingList');
+    if (!wrapper || !list) return;
+
+    const wrapperHeight = wrapper.clientHeight;
+    const listHeight = list.scrollHeight;
+
+    if (listHeight <= wrapperHeight) {
+        return;
+    }
+
+    const scrollStep = 2;
+    const scrollInterval = 100;
+    const pauseDuration = 3000;
+
+    let pauseTimeout = null;
+    let isPausedAtBottom = false;
+
+    roundRankingScrollInterval = setInterval(() => {
+        if (isPausedAtBottom) return;
+
+        wrapper.scrollTop += scrollStep;
+
+        if (wrapper.scrollTop + wrapperHeight >= listHeight - 10) {
+            isPausedAtBottom = true;
+            pauseTimeout = setTimeout(() => {
+                wrapper.scrollTop = 0;
+                isPausedAtBottom = false;
+                pauseTimeout = null;
+            }, pauseDuration);
+        }
+    }, scrollInterval);
+}
+
+function stopRoundRankingScroll() {
+    if (roundRankingScrollInterval) {
+        clearInterval(roundRankingScrollInterval);
+        roundRankingScrollInterval = null;
+    }
+}
+
 // 更新结果显示
 async function updateResultDisplay(contestant) {
     document.getElementById('resultName').textContent = contestant.name;
@@ -401,15 +538,17 @@ async function updateResultDisplay(contestant) {
         });
 
         // 渲染评分网格
+        const judgeDisplayMode = systemState?.judge_display_mode || 'number';
         scoreGrid.innerHTML = judges.map((judge, index) => {
             const score = scoreMap.get(judge.id);
             const hasScore = score !== undefined;
+            const judgeLabel = judgeDisplayMode === 'username' ? judge.username : `评委 ${judge.judge_number}`;
 
             return `
                 <div class="animate-scale-in text-center p-3 rounded-xl ${hasScore ? 'bg-white/10 border border-white/20' : 'bg-white/5 border border-white/5'}" style="animation-delay: ${index * 0.08}s">
-                    <div class="text-white/40 text-xs mb-1">评委 ${judge.judge_number}</div>
+                    <div class="text-white/40 text-xs mb-1">${judgeLabel}</div>
                     <div class="font-bold text-lg ${hasScore ? 'text-white' : 'text-white/20'}">
-                        ${hasScore ? score.toFixed(1) : '—'}
+                        ${hasScore ? score.toFixed(2) : '—'}
                     </div>
                 </div>
             `;
@@ -529,13 +668,15 @@ async function showContestantFinalMode() {
             });
 
             // 显示评委评分明细
+            const judgeDisplayMode = systemState?.judge_display_mode || 'number';
             const judgeScoresContainer = document.getElementById('contestantFinalJudgeScores');
             judgeScoresContainer.innerHTML = judges.map((judge, index) => {
                 const data = judgeScoreMap.get(judge.id);
-                const avgScore = data ? (data.total / data.count).toFixed(1) : null;
+                const avgScore = data ? (data.total / data.count).toFixed(2) : null;
+                const judgeLabel = judgeDisplayMode === 'username' ? judge.username : `评委 ${judge.judge_number}`;
                 return `
                     <div class="animate-scale-in text-center p-3 rounded-xl flex-shrink-0 w-20 ${avgScore ? 'bg-white/10 border border-white/20' : 'bg-white/5 border border-white/5'}" style="animation-delay: ${index * 0.05}s">
-                        <div class="text-white/40 text-xs mb-1">评委 ${judge.judge_number}</div>
+                        <div class="text-white/40 text-xs mb-1">${judgeLabel}</div>
                         <div class="font-bold text-lg ${avgScore ? 'text-white' : 'text-white/20'}">
                             ${avgScore || '—'}
                         </div>
@@ -798,6 +939,7 @@ function stopRankingScroll() {
         rankingScrollInterval = null;
     }
     rankingScrollPaused = false;
+    stopRoundRankingScroll();
 }
 
 // 启动评委评分滚动

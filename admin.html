@@ -144,6 +144,7 @@
                     <button class="settings-tab" data-settings-tab="judges">评委管理</button>
                     <button class="settings-tab" data-settings-tab="rounds">评分轮次</button>
                     <button class="settings-tab" data-settings-tab="theme">主题</button>
+                    <button class="settings-tab" data-settings-tab="basic">基础设置</button>
                 </div>
             </div>
         </div>
@@ -211,6 +212,14 @@
                                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                     </svg>
                                     <span>轮次结果</span>
+                                </button>
+                                <button class="display-mode-btn round-ranking" data-mode="round_ranking" onclick="setDisplayMode('round_ranking')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 20V10"></path>
+                                        <path d="M18 20V4"></path>
+                                        <path d="M6 20v-4"></path>
+                                    </svg>
+                                    <span>轮次排名</span>
                                 </button>
                                 <button class="display-mode-btn contestant-final" data-mode="contestant_final" onclick="setDisplayMode('contestant_final')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -405,6 +414,45 @@
                             </div>
                             <button id="applyThemeBtn" class="btn btn-primary w-full mt-4">
                                 应用主题
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 基础设置标签页 -->
+                <div id="settingsBasicTab" class="settings-content hidden">
+                    <div class="new-card">
+                        <div class="new-card-header">
+                            <h3 class="new-card-title">基础设置</h3>
+                            <p class="new-card-subtitle">配置系统基础参数</p>
+                        </div>
+                        <div class="new-card-body" style="border-top: 1px solid rgba(30, 41, 59, 0.5); padding: 1rem;">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="form-label">评分分值设置</label>
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <input type="number" id="maxScoreInput" class="form-input w-32" min="1" max="9999.99" step="0.01" value="100">
+                                        <span class="text-slate-400 text-sm">分（满分）</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-2">设置评分的满分分值，限定评委可以打出的最高分</p>
+                                </div>
+                                <div class="border-t border-slate-800 pt-4">
+                                    <label class="form-label">评委显示方式</label>
+                                    <div class="flex gap-3 mt-2">
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="judgeDisplayMode" value="number" class="form-radio" checked>
+                                            <span class="text-white">显示评委编号</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="judgeDisplayMode" value="username" class="form-radio">
+                                            <span class="text-white">显示评委用户名</span>
+                                        </label>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-2">选择在展示大屏和控制面板中如何显示评委信息</p>
+                                </div>
+                            </div>
+                            <button id="applyBasicSettingsBtn" class="btn btn-primary w-full mt-4">
+                                保存设置
                             </button>
                         </div>
                     </div>

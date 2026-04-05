@@ -133,6 +133,34 @@ BEGIN
     END IF;
 END $$;
 
+-- 如果 system_state 表已存在，添加 judge_display_mode 字段
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'system_state' AND column_name = 'judge_display_mode') THEN
+        NULL;
+    ELSE
+        ALTER TABLE system_state ADD COLUMN judge_display_mode TEXT DEFAULT 'number' CHECK (judge_display_mode IN ('number', 'username'));
+    END IF;
+END $$;
+
+-- 如果 system_state 表已存在，添加 max_score 字段
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'system_state' AND column_name = 'max_score') THEN
+        NULL;
+    ELSE
+        ALTER TABLE system_state ADD COLUMN max_score DECIMAL(6,2) DEFAULT 100.00 CHECK (max_score > 0 AND max_score <= 9999.99);
+    END IF;
+END $$;
+
+-- 更新 display_mode 约束，添加 round_ranking 模式
+DO $$ 
+BEGIN
+    ALTER TABLE system_state DROP CONSTRAINT IF EXISTS system_state_display_mode_check;
+    ALTER TABLE system_state ADD CONSTRAINT system_state_display_mode_check 
+        CHECK (display_mode IN ('waiting', 'scoring', 'result', 'round_ranking', 'contestant_final', 'final'));
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_contestants_event ON contestants(event_id);
 CREATE INDEX IF NOT EXISTS idx_judge_groups_event ON judge_groups(event_id);
 CREATE INDEX IF NOT EXISTS idx_judges_event ON judges(event_id);

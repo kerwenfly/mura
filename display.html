@@ -112,6 +112,31 @@
             flex-shrink: 0;
         }
 
+        #roundRankingMode {
+            position: relative;
+            overflow: hidden;
+        }
+
+        #roundRankingMode .round-ranking-header {
+            flex-shrink: 0;
+        }
+
+        #roundRankingListWrapper {
+            flex: 1 1 0%;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        #roundRankingList {
+            scroll-behavior: smooth;
+            width: 100%;
+            max-width: 48rem;
+        }
+
         #rankingListWrapper {
             flex: 1 1 0%;
             min-height: 0;
@@ -266,6 +291,20 @@
                 <div class="text-center bg-white/5 border border-white/10 rounded-3xl p-8">
                     <div id="resultRoundLabel" class="text-white/40 text-sm mb-2 uppercase tracking-widest">本轮得分</div>
                     <div id="finalScore" class="display-score font-black text-white tabular-nums leading-none">0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 轮次排名模式 -->
+        <div id="roundRankingMode" class="hidden flex flex-col items-center flex-1 px-4 py-6">
+            <div class="round-ranking-header text-center mb-6">
+                <h1 class="display-title font-black text-white mb-1">轮次排名</h1>
+                <p id="roundRankingRoundName" class="text-white/40"></p>
+            </div>
+
+            <div id="roundRankingListWrapper" class="hide-scrollbar">
+                <div id="roundRankingList" class="space-y-2">
+                    <!-- 排名列表将动态加载 -->
                 </div>
             </div>
         </div>
