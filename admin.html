@@ -724,6 +724,24 @@
                         <option value="">请选择分组</option>
                     </select>
                 </div>
+                <div>
+                    <label class="form-label">头像</label>
+                    <input type="file" id="judgeAvatarInput" accept="image/*" class="form-input">
+                    <div class="mt-2 flex items-center gap-3">
+                        <div id="judgeAvatarPreview" class="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden">
+                            <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/>
+                            </svg>
+                        </div>
+                        <button type="button" id="clearJudgeAvatarBtn" class="btn btn-secondary btn-sm hidden" onclick="clearJudgeAvatar()">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            清除头像
+                        </button>
+                    </div>
+                    <input type="hidden" id="judgeAvatarUrl">
+                </div>
                 <div class="modal-footer">
                     <button type="button" onclick="closeJudgeModal()" class="btn btn-secondary">取消</button>
                     <button type="submit" class="btn btn-primary">保存</button>

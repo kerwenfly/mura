@@ -64,7 +64,7 @@ const db = {
     async getJudges(eventId = null) {
         const supabase = getSupabase();
         let query = supabase.from('judges')
-            .select('id, username, judge_number, created_at, group_id, judge_groups(id, name)')
+            .select('id, username, judge_number, created_at, group_id, avatar_url, judge_groups(id, name)')
             .order('judge_number', { ascending: true });
         if (eventId) query = query.eq('event_id', eventId);
         const { data, error } = await query;
@@ -81,14 +81,14 @@ const db = {
 
     async createJudge(judge) {
         const supabase = getSupabase();
-        const { data, error } = await supabase.from('judges').insert(judge).select('id, username, judge_number, created_at, group_id').single();
+        const { data, error } = await supabase.from('judges').insert(judge).select('id, username, judge_number, created_at, group_id, avatar_url').single();
         if (error) throw error;
         return data;
     },
 
     async updateJudge(id, updates) {
         const supabase = getSupabase();
-        const { data, error } = await supabase.from('judges').update(updates).eq('id', id).select('id, username, judge_number, created_at, group_id').single();
+        const { data, error } = await supabase.from('judges').update(updates).eq('id', id).select('id, username, judge_number, created_at, group_id, avatar_url').single();
         if (error) throw error;
         return data;
     },

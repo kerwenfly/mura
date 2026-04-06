@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS judges (
     username TEXT NOT NULL,
     password TEXT NOT NULL,
     judge_number INTEGER NOT NULL,
+    avatar_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(event_id, username),
     UNIQUE(event_id, judge_number)
@@ -150,6 +151,16 @@ BEGIN
         NULL;
     ELSE
         ALTER TABLE system_state ADD COLUMN max_score DECIMAL(6,2) DEFAULT 100.00 CHECK (max_score > 0 AND max_score <= 9999.99);
+    END IF;
+END $$;
+
+-- 如果 judges 表已存在，添加 avatar_url 字段
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'judges' AND column_name = 'avatar_url') THEN
+        NULL;
+    ELSE
+        ALTER TABLE judges ADD COLUMN avatar_url TEXT;
     END IF;
 END $$;
 
@@ -335,8 +346,8 @@ BEGIN
     FROM events WHERE id = p_event_id
     RETURNING id INTO new_event_id;
     
-    INSERT INTO contestants (name, number, department, description, order_index, event_id)
-    SELECT name, number, department, description, order_index, new_event_id
+    INSERT INTO contestants (name, number, department, description, order_index, event_id, avatar_url)
+    SELECT name, number, department, description, order_index, new_event_id, avatar_url
     FROM contestants WHERE event_id = p_event_id;
     
     FOR old_group_id, new_group_id IN
@@ -359,10 +370,11 @@ BEGIN
             jsonb_build_object('old', old_round_id, 'new', new_round_id));
     END LOOP;
     
-    INSERT INTO judges (username, password, judge_number, event_id, group_id)
+    INSERT INTO judges (username, password, judge_number, event_id, group_id, avatar_url)
     SELECT j.username, j.password, j.judge_number, new_event_id,
            (SELECT elem->>'new' FROM jsonb_array_elements(group_mapping) elem 
-            WHERE elem->>'old' = j.group_id::text)
+            WHERE elem->>'old' = j.group_id::text),
+           j.avatar_url
     FROM judges j WHERE j.event_id = p_event_id;
     
     RETURN new_event_id;

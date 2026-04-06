@@ -45,6 +45,7 @@ function initEventListeners() {
     document.getElementById('manageEventsBtn').addEventListener('click', openEventListModal);
     
     document.getElementById('avatarInput').addEventListener('change', handleAvatarUpload);
+    document.getElementById('judgeAvatarInput').addEventListener('change', handleJudgeAvatarUpload);
     
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => switchTab(tab.dataset.tab));
@@ -855,6 +856,50 @@ function clearAvatar() {
     showToast('头像已清除', 'success');
 }
 
+function handleJudgeAvatarUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 200 * 1024) {
+        showToast('图片大小不能超过 200KB', 'error');
+        e.target.value = '';
+        return;
+    }
+    
+    if (!file.type.startsWith('image/')) {
+        showToast('请选择图片文件', 'error');
+        e.target.value = '';
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const base64 = event.target.result;
+        document.getElementById('judgeAvatarUrl').value = base64;
+        
+        const preview = document.getElementById('judgeAvatarPreview');
+        preview.innerHTML = `<img src="${base64}" alt="头像预览" style="width:100%;height:100%;object-fit:cover;">`;
+        
+        document.getElementById('clearJudgeAvatarBtn').classList.remove('hidden');
+        showToast('图片已选择', 'success');
+    };
+    reader.onerror = function() {
+        showToast('读取图片失败', 'error');
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearJudgeAvatar() {
+    document.getElementById('judgeAvatarUrl').value = '';
+    document.getElementById('judgeAvatarInput').value = '';
+    
+    const preview = document.getElementById('judgeAvatarPreview');
+    preview.innerHTML = `<svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg>`;
+    
+    document.getElementById('clearJudgeAvatarBtn').classList.add('hidden');
+    showToast('头像已清除', 'success');
+}
+
 async function deleteContestant(id) {
     openConfirmModal('删除选手', '确定要删除该选手吗？相关的评分数据也会被删除。', async () => {
         try {
@@ -878,6 +923,8 @@ function openJudgeModal(judge = null) {
     
     const modal = document.getElementById('judgeModal');
     const title = document.getElementById('judgeModalTitle');
+    const preview = document.getElementById('judgeAvatarPreview');
+    const clearBtn = document.getElementById('clearJudgeAvatarBtn');
     
     if (judge) {
         title.textContent = '编辑评委';
@@ -888,12 +935,24 @@ function openJudgeModal(judge = null) {
         document.getElementById('judgePasswordInput').required = false;
         document.getElementById('judgeNumberInput').value = judge.judge_number;
         document.getElementById('judgeGroupSelect').value = judge.group_id || '';
+        document.getElementById('judgeAvatarUrl').value = judge.avatar_url || '';
+        
+        if (judge.avatar_url) {
+            preview.innerHTML = `<img src="${judge.avatar_url}" alt="头像" style="width:100%;height:100%;object-fit:cover;">`;
+            clearBtn.classList.remove('hidden');
+        } else {
+            preview.innerHTML = `<svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg>`;
+            clearBtn.classList.add('hidden');
+        }
     } else {
         title.textContent = '添加评委';
         document.getElementById('judgeForm').reset();
         document.getElementById('judgeId').value = '';
+        document.getElementById('judgeAvatarUrl').value = '';
         document.getElementById('judgePasswordInput').placeholder = '请输入登录密码';
         document.getElementById('judgePasswordInput').required = true;
+        preview.innerHTML = `<svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg>`;
+        clearBtn.classList.add('hidden');
         if (judgeGroups.length > 0) {
             document.getElementById('judgeGroupSelect').value = judgeGroups[0].id;
         }
@@ -927,6 +986,7 @@ async function handleJudgeSubmit(e) {
         username: document.getElementById('judgeUsernameInput').value,
         judge_number: parseInt(document.getElementById('judgeNumberInput').value),
         group_id: document.getElementById('judgeGroupSelect').value || null,
+        avatar_url: document.getElementById('judgeAvatarUrl').value,
         event_id: currentEventId
     };
     
@@ -1996,6 +2056,7 @@ window.setDisplayMode = setDisplayMode;
 window.toggleContestant = toggleContestant;
 window.toggleRound = toggleRound;
 window.clearAvatar = clearAvatar;
+window.clearJudgeAvatar = clearJudgeAvatar;
 
 // 数据管理功能
 function updateDataRoundSelect() {

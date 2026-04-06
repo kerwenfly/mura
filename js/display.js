@@ -543,9 +543,17 @@ async function updateResultDisplay(contestant) {
             const score = scoreMap.get(judge.id);
             const hasScore = score !== undefined;
             const judgeLabel = judgeDisplayMode === 'username' ? judge.username : `评委 ${judge.judge_number}`;
+            
+            // 评委头像
+            const judgeAvatarHtml = judge.avatar_url 
+                ? `<img src="${judge.avatar_url}" alt="${judgeLabel}" class="w-18 h-18 rounded-full object-cover mx-auto mb-2">`
+                : `<div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center mx-auto mb-2">
+                    <span class="text-xs font-bold text-white">${judge.judge_number}</span>
+                   </div>`;
 
             return `
                 <div class="animate-scale-in text-center p-3 rounded-xl ${hasScore ? 'bg-white/10 border border-white/20' : 'bg-white/5 border border-white/5'}" style="animation-delay: ${index * 0.08}s">
+                    ${judgeAvatarHtml}
                     <div class="text-white/40 text-xs mb-1">${judgeLabel}</div>
                     <div class="font-bold text-lg ${hasScore ? 'text-white' : 'text-white/20'}">
                         ${hasScore ? score.toFixed(2) : '—'}
@@ -674,8 +682,17 @@ async function showContestantFinalMode() {
                 const data = judgeScoreMap.get(judge.id);
                 const avgScore = data ? (data.total / data.count).toFixed(2) : null;
                 const judgeLabel = judgeDisplayMode === 'username' ? judge.username : `评委 ${judge.judge_number}`;
+                
+                // 评委头像
+                const judgeAvatarHtml = judge.avatar_url 
+                    ? `<img src="${judge.avatar_url}" alt="${judgeLabel}" class="w-18 h-18 rounded-full object-cover mx-auto mb-2">`
+                    : `<div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center mx-auto mb-2">
+                        <span class="text-xs font-bold text-white">${judge.judge_number}</span>
+                       </div>`;
+                
                 return `
                     <div class="animate-scale-in text-center p-3 rounded-xl flex-shrink-0 w-20 ${avgScore ? 'bg-white/10 border border-white/20' : 'bg-white/5 border border-white/5'}" style="animation-delay: ${index * 0.05}s">
+                        ${judgeAvatarHtml}
                         <div class="text-white/40 text-xs mb-1">${judgeLabel}</div>
                         <div class="font-bold text-lg ${avgScore ? 'text-white' : 'text-white/20'}">
                             ${avgScore || '—'}
