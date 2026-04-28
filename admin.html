@@ -132,14 +132,14 @@
 
         <!-- 标签页 -->
         <div class="bg-slate-900 border-b border-slate-800">
-            <div class="flex px-4 md:px-6 gap-1">
+            <div class="scrollable-menu flex px-4 md:px-6 gap-1" id="primaryMenu">
                 <button class="tab active" data-tab="control">控制面板</button>
                 <button class="tab" data-tab="settings">设置</button>
                 <button class="tab" data-tab="data">数据管理</button>
             </div>
             <!-- 设置子标签页 -->
             <div id="settingsSubTabs" class="hidden border-t border-slate-800">
-                <div class="flex px-4 md:px-6 gap-1">
+                <div class="scrollable-menu flex px-4 md:px-6 gap-1" id="secondaryMenu">
                     <button class="settings-tab active" data-settings-tab="contestants">选手管理</button>
                     <button class="settings-tab" data-settings-tab="judges">评委管理</button>
                     <button class="settings-tab" data-settings-tab="rounds">评分轮次</button>

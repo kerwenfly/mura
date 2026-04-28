@@ -13,6 +13,39 @@ let selectedTheme = 1;
 
 const ADMIN_SESSION_KEY = 'admin_session';
 
+// Cookie 工具函数
+const CookieUtil = {
+    // 设置会话 Cookie（不设置过期时间，关闭浏览器即失效）
+    set: function(name, value) {
+        const encodedValue = btoa(encodeURIComponent(JSON.stringify(value)));
+        document.cookie = `${name}=${encodedValue}; path=/; SameSite=Strict`;
+    },
+    
+    // 获取 Cookie
+    get: function(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) === 0) {
+                const encodedValue = c.substring(nameEQ.length, c.length);
+                try {
+                    return JSON.parse(decodeURIComponent(atob(encodedValue)));
+                } catch (e) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    },
+    
+    // 删除 Cookie
+    delete: function(name) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    }
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
     initEventListeners();
     await checkAuth();
@@ -57,19 +90,20 @@ function initEventListeners() {
     
     initThemeSettings();
     initBasicSettings();
+    initScrollableMenus();
 }
 
 async function checkAuth() {
-    const savedAdmin = localStorage.getItem(ADMIN_SESSION_KEY);
+    const savedAdmin = CookieUtil.get(ADMIN_SESSION_KEY);
     if (savedAdmin) {
         try {
-            currentAdmin = JSON.parse(savedAdmin);
+            currentAdmin = savedAdmin;
             showAdminSection();
             await loadEvents();
             await loadData();
             subscribeToChanges();
         } catch (error) {
-            localStorage.removeItem(ADMIN_SESSION_KEY);
+            CookieUtil.delete(ADMIN_SESSION_KEY);
             currentAdmin = null;
         }
     }
@@ -87,7 +121,7 @@ async function handleLogin(e) {
         }
         
         currentAdmin = result[0];
-        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(currentAdmin));
+        CookieUtil.set(ADMIN_SESSION_KEY, currentAdmin);
         
         showAdminSection();
         await loadEvents();
@@ -101,7 +135,7 @@ async function handleLogin(e) {
 
 function handleLogout() {
     subscriptions.forEach(sub => sub.unsubscribe());
-    localStorage.removeItem(ADMIN_SESSION_KEY);
+    CookieUtil.delete(ADMIN_SESSION_KEY);
     currentAdmin = null;
     document.getElementById('loginSection').classList.remove('hidden');
     document.getElementById('adminSection').classList.add('hidden');
@@ -2787,3 +2821,56 @@ function updateBasicSettingsUI() {
 
 window.initBasicSettings = initBasicSettings;
 window.applyBasicSettings = applyBasicSettings;
+
+// 菜单栏滑动功能
+function initScrollableMenus() {
+    const menus = document.querySelectorAll('.scrollable-menu');
+    
+    menus.forEach(menu => {
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+        
+        // 鼠标按下
+        menu.addEventListener('mousedown', (e) => {
+            isDown = true;
+            menu.classList.add('active');
+            startX = e.pageX - menu.offsetLeft;
+            scrollLeft = menu.scrollLeft;
+        });
+        
+        // 鼠标离开
+        menu.addEventListener('mouseleave', () => {
+            isDown = false;
+            menu.classList.remove('active');
+        });
+        
+        // 鼠标松开
+        menu.addEventListener('mouseup', () => {
+            isDown = false;
+            menu.classList.remove('active');
+        });
+        
+        // 鼠标移动
+        menu.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - menu.offsetLeft;
+            const walk = (x - startX) * 2;
+            menu.scrollLeft = scrollLeft - walk;
+        });
+        
+        // 触摸开始
+        menu.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].pageX - menu.offsetLeft;
+            scrollLeft = menu.scrollLeft;
+        });
+        
+        // 触摸移动
+        menu.addEventListener('touchmove', (e) => {
+            const x = e.touches[0].pageX - menu.offsetLeft;
+            const walk = (x - startX) * 2;
+            menu.scrollLeft = scrollLeft - walk;
+        });
+    });
+}
