@@ -372,16 +372,18 @@ async function showRoundRankingMode() {
 
     try {
         const roundResults = await db.getRoundResults(currentRound.id);
+        // 过滤掉分数为0的选手
+        const filteredResults = roundResults?.filter(r => r.round_score > 0) || [];
         const rankingList = document.getElementById('roundRankingList');
 
-        if (!roundResults || roundResults.length === 0) {
+        if (!filteredResults || filteredResults.length === 0) {
             rankingList.innerHTML = '<p class="text-white/30 text-center py-8">暂无排名数据</p>';
             return;
         }
 
         const medals = ['🥇', '🥈', '🥉'];
 
-        rankingList.innerHTML = roundResults.map((result, index) => {
+        rankingList.innerHTML = filteredResults.map((result, index) => {
             const rank = index + 1;
             const medal = medals[index] || '';
 
@@ -515,18 +517,18 @@ async function updateResultDisplay(contestant) {
     }
 
     // 加载评分数据
+    const groupsContainer = document.getElementById('scoreGroupsContainer');
     if (!currentRound) {
-        document.getElementById('scoreGrid').innerHTML = '<p class="text-slate-500 text-center col-span-full">暂无评分数据</p>';
+        groupsContainer.innerHTML = '<p class="text-white/30 text-center py-4">暂无评分数据</p>';
         document.getElementById('finalScore').textContent = '0.00';
         return;
     }
 
     try {
         const scores = await db.getScoresByContestant(contestant.id, currentRound.id);
-        const scoreGrid = document.getElementById('scoreGrid');
 
         if (!scores || scores.length === 0) {
-            scoreGrid.innerHTML = '<p class="text-slate-500 text-center col-span-full">暂无评分数据</p>';
+            groupsContainer.innerHTML = '<p class="text-white/30 text-center py-4">暂无评分数据</p>';
             document.getElementById('finalScore').textContent = '0.00';
             return;
         }
@@ -537,26 +539,54 @@ async function updateResultDisplay(contestant) {
             scoreMap.set(score.judge_id, score.score);
         });
 
-        // 渲染评分网格
-        const judgeDisplayMode = systemState?.judge_display_mode || 'number';
-        scoreGrid.innerHTML = judges.map((judge, index) => {
-            const score = scoreMap.get(judge.id);
-            const hasScore = score !== undefined;
-            const judgeLabel = judgeDisplayMode === 'username' ? judge.username : `评委 ${judge.judge_number}`;
-            
-            // 评委头像
-            const judgeAvatarHtml = judge.avatar_url 
-                ? `<img src="${judge.avatar_url}" alt="${judgeLabel}" class="w-18 h-18 rounded-full object-cover mx-auto mb-2">`
-                : `<div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center mx-auto mb-2">
-                    <span class="text-xs font-bold text-white">${judge.judge_number}</span>
-                   </div>`;
+        // 按评委组分组
+        const judgeGroups = new Map();
+        judges.forEach(judge => {
+            const groupId = judge.group_id || 'no-group';
+            const groupName = judge.judge_groups?.name || '未分组';
+            if (!judgeGroups.has(groupId)) {
+                judgeGroups.set(groupId, { name: groupName, judges: [] });
+            }
+            judgeGroups.get(groupId).judges.push(judge);
+        });
 
+        // 渲染分组
+        const judgeDisplayMode = systemState?.judge_display_mode || 'number';
+        let groupIndex = 0;
+        
+        groupsContainer.innerHTML = Array.from(judgeGroups.values()).map(group => {
+            const judgesHtml = group.judges.map((judge, idx) => {
+                const score = scoreMap.get(judge.id);
+                const hasScore = score !== undefined;
+                const judgeLabel = judgeDisplayMode === 'username' ? judge.username : `评委 ${judge.judge_number}`;
+                
+                // 评委头像 - 图片显示大一点
+                const avatarSize = judge.avatar_url ? 'w-14 h-14' : 'w-10 h-10';
+                const judgeAvatarHtml = judge.avatar_url 
+                    ? `<img src="${judge.avatar_url}" alt="${judgeLabel}" class="${avatarSize} rounded-full object-cover mx-auto mb-1.5 ring-2 ring-white/20">`
+                    : `<div class="${avatarSize} rounded-full bg-slate-600 flex items-center justify-center mx-auto mb-1.5">
+                        <span class="text-sm font-bold text-white">${judge.judge_number}</span>
+                       </div>`;
+
+                return `
+                    <div class="animate-scale-in flex-shrink-0 text-center p-3 rounded-xl min-w-[80px] ${hasScore ? 'bg-white/10 border border-white/20' : 'bg-white/5 border border-white/5'}" style="animation-delay: ${idx * 0.05}s">
+                        ${judgeAvatarHtml}
+                        <div class="text-white/40 text-xs mb-0.5">${judgeLabel}</div>
+                        <div class="font-bold text-base ${hasScore ? 'text-white' : 'text-white/20'}">
+                            ${hasScore ? score.toFixed(2) : '—'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const currentGroupIndex = groupIndex++;
             return `
-                <div class="animate-scale-in text-center p-3 rounded-xl ${hasScore ? 'bg-white/10 border border-white/20' : 'bg-white/5 border border-white/5'}" style="animation-delay: ${index * 0.08}s">
-                    ${judgeAvatarHtml}
-                    <div class="text-white/40 text-xs mb-1">${judgeLabel}</div>
-                    <div class="font-bold text-lg ${hasScore ? 'text-white' : 'text-white/20'}">
-                        ${hasScore ? score.toFixed(2) : '—'}
+                <div class="animate-fade-in bg-white/5 border border-white/10 rounded-xl p-3" style="animation-delay: ${currentGroupIndex * 0.1}s">
+                    <div class="text-white/50 text-sm font-medium mb-2 px-1">${group.name}</div>
+                    <div class="overflow-x-auto hide-scrollbar">
+                        <div class="flex gap-2" style="min-width: max-content;">
+                            ${judgesHtml}
+                        </div>
                     </div>
                 </div>
             `;
@@ -569,10 +599,77 @@ async function updateResultDisplay(contestant) {
 
         // 动画显示得分
         animateScore(finalScore);
+
+        // 启动评委组滚动
+        setTimeout(() => {
+            startScoreGroupsScroll();
+        }, 500);
     } catch (error) {
         console.error('加载评分数据失败:', error);
-        document.getElementById('scoreGrid').innerHTML = '<p class="text-slate-500 text-center col-span-full">加载失败</p>';
+        document.getElementById('scoreGroupsContainer').innerHTML = '<p class="text-white/30 text-center py-4">加载失败</p>';
     }
+}
+
+// 评委组滚动相关
+let scoreGroupsScrollIntervals = [];
+
+function startScoreGroupsScroll() {
+    stopScoreGroupsScroll();
+    
+    const groupsContainer = document.getElementById('scoreGroupsContainer');
+    if (!groupsContainer) return;
+    
+    const scrollWrappers = groupsContainer.querySelectorAll('.overflow-x-auto');
+    
+    scrollWrappers.forEach(wrapper => {
+        const content = wrapper.querySelector('.flex');
+        if (!content) return;
+        
+        const wrapperWidth = wrapper.clientWidth;
+        const contentWidth = content.scrollWidth;
+        
+        if (contentWidth <= wrapperWidth) return;
+        
+        const scrollStep = 1;
+        const scrollInterval = 50;
+        const pauseDuration = 2000;
+        
+        let pauseTimeout = null;
+        let isPausedAtEnd = false;
+        let direction = 1;
+        
+        const intervalId = setInterval(() => {
+            if (isPausedAtEnd) return;
+            
+            wrapper.scrollLeft += scrollStep * direction;
+            
+            if (direction === 1 && wrapper.scrollLeft + wrapperWidth >= contentWidth - 10) {
+                isPausedAtEnd = true;
+                pauseTimeout = setTimeout(() => {
+                    direction = -1;
+                    isPausedAtEnd = false;
+                    pauseTimeout = null;
+                }, pauseDuration);
+            } else if (direction === -1 && wrapper.scrollLeft <= 10) {
+                isPausedAtEnd = true;
+                pauseTimeout = setTimeout(() => {
+                    direction = 1;
+                    isPausedAtEnd = false;
+                    pauseTimeout = null;
+                }, pauseDuration);
+            }
+        }, scrollInterval);
+        
+        scoreGroupsScrollIntervals.push({ intervalId, pauseTimeout });
+    });
+}
+
+function stopScoreGroupsScroll() {
+    scoreGroupsScrollIntervals.forEach(item => {
+        if (item.intervalId) clearInterval(item.intervalId);
+        if (item.pauseTimeout) clearTimeout(item.pauseTimeout);
+    });
+    scoreGroupsScrollIntervals = [];
 }
 
 // 得分动画
@@ -744,19 +841,21 @@ function animateContestantFinalScore(targetScore) {
 async function showFinalMode() {
     try {
         const results = await db.getFinalResultsWithRounds(currentEvent.id);
+        // 过滤掉分数为0的选手
+        const filteredResults = results?.filter(r => r.final_score > 0) || [];
         const rankingList = document.getElementById('rankingList');
 
         // 更新活动名称
         document.getElementById('finalEventName').textContent = currentEvent?.name || '';
 
-        if (!results || results.length === 0) {
+        if (!filteredResults || filteredResults.length === 0) {
             rankingList.innerHTML = '<p class="text-white/30 text-center py-8">暂无排名数据</p>';
             return;
         }
 
         const medals = ['🥇', '🥈', '🥉'];
 
-        rankingList.innerHTML = results.map((result, index) => {
+        rankingList.innerHTML = filteredResults.map((result, index) => {
             const rank = index + 1;
             const medal = medals[index] || '';
 
@@ -957,6 +1056,7 @@ function stopRankingScroll() {
     }
     rankingScrollPaused = false;
     stopRoundRankingScroll();
+    stopScoreGroupsScroll();
 }
 
 // 启动评委评分滚动
